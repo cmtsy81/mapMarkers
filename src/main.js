@@ -10,7 +10,7 @@ import './map_mobile_script.js'
 
 // Eğer admin paneli değilse script.js'i yükleme
 if (window.location.pathname.includes('admin.html')) {
-  import('./script.js')
+  import('./admin_script.js')
 }
 
 console.log('✅ Tarihi Markers uygulaması yüklendi')
