@@ -604,7 +604,7 @@ window.handleMarkerClick = async function(id) {
 /**
  * Smart cache logic: Marker detaylarını al
  */
-async function getLocationDetails(id) {
+window.getLocationDetails = async function(id) {
   // Memory cache kontrol
   if (detailCache.has(id)) {
     const cached = detailCache.get(id);
@@ -667,7 +667,7 @@ async function getLocationDetails(id) {
   return null;
 }
 
-function focusMapOnLocation(loc) {
+window.focusMapOnLocation = function(loc) {
   let lat, lng;
   if (loc.lat && loc.lng) { [lat, lng] = [loc.lat, loc.lng]; }
   else if (loc.location?.coordinates) { [lng, lat] = loc.location.coordinates; }
@@ -680,7 +680,7 @@ function focusMapOnLocation(loc) {
   map.flyTo([lat, lng], targetZoom, { duration: 1 });
 }
 
-function showDetails(loc) {
+window.showDetails = function(loc) {
   const title = loc.translations[currentLang]?.title || loc.id;
   const description = loc.translations[currentLang]?.description || "Açıklama mevcut değil.";
   const audioPath = loc.translations[currentLang]?.audioPath;
