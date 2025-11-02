@@ -30,18 +30,18 @@ const customIconSelected = L.icon({
 });
 
 // --- GLOBAL DEĞİŞKENLER ---
-let map;
-let markerClusterGroup;
-let geoIndexData = [];
-let detailCache = new Map(); // Memory cache (session)
-window.currentHeavyLocation = null;
-let currentLang = 'tr';
-let allCategories = {};
-let allCities = [];
-window.selectedLocationId = null;
-const markerMap = {};
-let lastIndexFetch = 0;
-let db; // IndexedDB bağlantısı
+window.map; // let map;
+window.markerClusterGroup; // let markerClusterGroup;
+window.geoIndexData = []; // let geoIndexData = [];
+window.detailCache = new Map(); // let detailCache = new Map();
+window.currentHeavyLocation = null; // Zaten yapmıştınız
+window.currentLang = 'tr'; // let currentLang = 'tr';
+window.allCategories = {}; // let allCategories = {};
+window.allCities = {}; // let allCities = {};
+window.selectedLocationId = null; // Zaten yapmıştınız
+window.markerMap = {}; // let markerMap = {};
+window.db; // let db;
+window.lastIndexFetch = 0; // let lastIndexFetch = 0;
 
 // --- İNDEXEDDB BAŞLATMA ---
 async function initIndexedDB() {
