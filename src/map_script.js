@@ -557,7 +557,7 @@ async function updateLocationList() {
 /**
  * Marker veya liste öğesine tıklandığında detay çek
  */
-async function handleMarkerClick(id) {
+window.handleMarkerClick = async function(id) {
   if (!id) return;
   
   document.getElementById('detailsPanel').classList.add('active');
@@ -737,7 +737,7 @@ function showDetails(loc) {
   document.getElementById('detailsPanel').classList.add('active');
 }
 
-function closeDetails() {
+window.closeDetails = async function() {
   document.getElementById('detailsPanel').classList.remove('active');
   if (selectedLocationId && markerMap[selectedLocationId]) {
     markerMap[selectedLocationId].setIcon(customIcon);
