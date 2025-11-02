@@ -34,11 +34,11 @@ let map;
 let markerClusterGroup;
 let geoIndexData = [];
 let detailCache = new Map(); // Memory cache (session)
-let currentHeavyLocation = null;
+window.currentHeavyLocation = null;
 let currentLang = 'tr';
 let allCategories = {};
 let allCities = [];
-let selectedLocationId = null;
+window.selectedLocationId = null;
 const markerMap = {};
 let lastIndexFetch = 0;
 let db; // IndexedDB bağlantısı
