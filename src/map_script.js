@@ -363,8 +363,8 @@ async function loadGeoIndex() {
   }
 }
 
-async function loadCategories() {
-  try {
+window.loadCategories = async function() {
+    try {
     const res = await fetch(`${API_BASE}/categories`);
     const categories = await res.json();
     const select = document.getElementById('categoryFilter');
@@ -727,8 +727,8 @@ window.closeDetails = async function () {
 
 // --- OLAY DİNLEYİCİLERİ ---
 
-const throttledUpdateMarkers = throttle(updateMapMarkers, 1000); // 1 saniye bekleme
-const throttledUpdateList = throttle(updateLocationList, 1000);
+window.throttledUpdateMarkers = throttle(updateMapMarkers, 1000); // 1 saniye bekleme
+window.throttledUpdateList = throttle(updateLocationList, 1000);
 
 document.querySelectorAll('.lang-btn').forEach(btn => {
   btn.addEventListener('click', () => {

@@ -125,8 +125,11 @@ function createFloatingControls() {
 }
 
 // Dil değiştir (mobile)
+// map_mobile_script.js DOSYASINA EKLENECEK
+
+// Dil değiştir (mobile)
 function changeMobileLanguage(lang) {
-  currentLang = lang;
+  window.currentLang = lang; // DÜZELTME: Global 'currentLang' değişkenini kullan
   
   // Dil butonlarını güncelle
   document.querySelectorAll('#floatingControls .lang-btn').forEach(btn => {
@@ -141,24 +144,27 @@ function changeMobileLanguage(lang) {
     }
   });
 
-  loadCategories();
-  throttledUpdateMarkers();
-  throttledUpdateList();
+  // DÜZELTME: Global 'window' üzerinden çağır
+  window.loadCategories();
+  window.throttledUpdateMarkers();
+  window.throttledUpdateList();
 
-  if (currentHeavyLocation) {
-    showDetails(currentHeavyLocation);
+  if (window.currentHeavyLocation) { // Bu zaten 'window'daydı
+    window.showDetails(window.currentHeavyLocation); // Bu zaten 'window'daydı
   }
 
-// Mobile panel açıksa güncelle
-    if (selectedLocationId && mobilePanel && mobilePanel.style.display === 'flex') {
-    const location = geoIndexData.find(loc => loc.id === selectedLocationId);
+  // Mobile panel açıksa güncelle
+  // 'mobilePanel' bu dosyanın kendi içinde, 'window.' gerekmez.
+  // 'selectedLocationId', 'geoIndexData', 'currentLang' ve 'allCategories' global olmalı.
+  if (window.selectedLocationId && mobilePanel && mobilePanel.style.display === 'flex') {
+    const location = window.geoIndexData.find(loc => loc.id === window.selectedLocationId);
     if (location) {
-        const title = location.translations?.[currentLang]?.title || location.id;
-        const categoryName = allCategories[location.categoryKey] || '-';
+        const title = location.translations?.[window.currentLang]?.title || location.id;
+        const categoryName = window.allCategories[location.categoryKey] || '-';
         document.getElementById('mobileTitle').textContent = title;
         document.getElementById('mobileCategory').textContent = `${location.city} • ${categoryName}`;
     }
-}
+  }
 }
 
 // ===== GEOLOCATION =====
