@@ -835,3 +835,66 @@ window.addEventListener('load', async () => {
   window.clearIndexCache = clearIndexCache;
   console.log('💡 Test için: clearAllCache() veya clearIndexCache() komutlarını kullanabilirsiniz');
 });
+
+
+// map_script.js dosyasının uygun bir yerine ekleyin
+
+/**
+ * Açıklama metnini (TTS) okumayı başlatır veya durdurur.
+ */
+window.toggleSpeech = function() {
+  const ttsButton = document.getElementById('ttsButton');
+  const textToSpeak = document.getElementById('detailsDesc').textContent;
+
+  // --- 1. Durdurma Mantığı ---
+  // Eğer zaten konuşuyorsa, durdur ve çık.
+  if (speechSynthesis.speaking) {
+    speechSynthesis.cancel();
+    // (onend olayı butonu otomatik olarak '▶️' yapacak)
+    ttsButton.textContent = '▶️'; // <-- DÜZELTME: Butonu manuel olarak resetle
+    return;
+  }
+
+  // --- 2. Metin veya Destek Yoksa ---
+  if (!textToSpeak || !('speechSynthesis' in window)) {
+    console.warn('TTS desteklenmiyor veya okunacak metin yok.');
+    return;
+  }
+
+  // Önceki konuşmaları iptal et (her ihtimale karşı)
+  speechSynthesis.cancel();
+
+  // --- 3. Dil Seçimi ---
+  // Bizim 'tr', 'en' gibi kodlarımızı, 'tr-TR', 'en-US' gibi standart kodlara çevirelim.
+  const langMap = {
+    'tr': 'tr-TR',
+    'en': 'en-GB', // İngiliz aksanı
+    'de': 'de-DE',
+    'fr': 'fr-FR'
+  };
+  const targetLangCode = langMap[window.currentLang] || 'en-US'; // Bulamazsa Amerikan İngilizcesi
+
+  // --- 4. Konuşma Cümlesini (Utterance) Oluşturma ---
+  const utterance = new SpeechSynthesisUtterance(textToSpeak);
+  
+  // A. Tarayıcıya "Lütfen bu dilde bir ses bul" diyelim.
+  // Çoğu tarayıcı, o dil için en iyi/varsayılan sesi (örn: Yelda) otomatik seçer.
+  utterance.lang = targetLangCode;
+  
+  // B. (İsteğe bağlı - Garantici Yöntem)
+  // Tarayıcının ses listesini alıp manuel olarak da seçebiliriz.
+  // const voices = speechSynthesis.getVoices();
+  // utterance.voice = voices.find(v => v.lang === targetLangCode) || voices.find(v => v.lang.startsWith(window.currentLang));
+
+  // --- 5. Buton Simgelerini Güncelleme (Başlangıç ve Bitiş) ---
+  utterance.onstart = () => {
+    ttsButton.textContent = '⏹️'; // Durdur simgesi
+  };
+  
+  utterance.onend = () => {
+    ttsButton.textContent = '▶️'; // Oynat simgesi
+  };
+
+  // --- 6. Konuş! ---
+  speechSynthesis.speak(utterance);
+}
