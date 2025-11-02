@@ -851,7 +851,6 @@ window.toggleSpeech = function() {
   if (speechSynthesis.speaking) {
     speechSynthesis.cancel();
     // (onend olayı butonu otomatik olarak '▶️' yapacak)
-    ttsButton.textContent = '▶️'; // <-- DÜZELTME: Butonu manuel olarak resetle
     return;
   }
 
