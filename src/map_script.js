@@ -717,6 +717,10 @@ window.showDetails = function (loc) {
 
 window.closeDetails = async function () {
   speechSynthesis.cancel();
+  const ttsButton = document.getElementById('ttsButton');
+  if (ttsButton) {
+    ttsButton.textContent = '▶️';  // ← Play simgesine çevir
+  }
   document.getElementById('detailsPanel').classList.remove('active');
   if (window.selectedLocationId && window.markerMap[window.selectedLocationId]) { // DÜZELTİLDİ
     window.markerMap[window.selectedLocationId].setIcon(customIcon); // DÜZELTİLDİ
@@ -851,6 +855,10 @@ window.toggleSpeech = function() {
   if (speechSynthesis.speaking) {
     speechSynthesis.cancel();
     // (onend olayı butonu otomatik olarak '▶️' yapacak)
+//<<<<<<< HEAD
+//=======
+    ttsButton.textContent = '▶️';  // ← EKLE: Play simgesine çevir
+//>>>>>>> 422baa4 (oku dutonu düzenleme)
     return;
   }
 
