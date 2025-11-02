@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Lokasyonlar</title>
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>📍 Lokasyonlar</h2>
+      <button id="newLocationBtn">+ Yeni Lokasyon</button>
+      <div class="filter-group">
+        <label for="cityFilter">Şehir</label>
+        <select id="cityFilter">
+          <option value="">Tüm Şehirler</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="categoryFilter">Kategori</label>
+        <select id="categoryFilter">
+          <option value="">Tüm Kategoriler</option>
+        </select>
+      </div>
+    </div>
+    <ul class="sidebar-list" id="locationList">
+      <li style="text-align: center; padding: 20px; color: #999;">Yükleniyor...</li>
+    </ul>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <div class="header">
+      <h1 id="locationTitle">Lokasyon Seçin</h1>
+    </div>
+
+    <div class="content">
+      <form id="locationForm" class="form-container">
+        <input type="hidden" id="currentLocationId">
+
+        <!-- TABS -->
+        <div class="tabs">
+          <div class="tab active" data-lang="tr">🇹🇷 Türkçe</div>
+          <div class="tab" data-lang="en">🇬🇧 English</div>
+          <div class="tab" data-lang="de">🇩🇪 Deutsch</div>
+          <div class="tab" data-lang="fr">🇫🇷 Français</div>
+          <div class="tab" data-lang="settings">⚙️ Ayarlar</div>
+        </div>
+
+        <!-- TR CONTENT -->
+        <div id="content-tr" class="tab-content active">
+          <div class="form-section">
+            <h3>Türkçe (TR) İçeriği</h3>
+            <div class="form-group">
+              <label for="title_tr">Başlık</label>
+              <input type="text" id="title_tr" name="title_tr" placeholder="Lokasyon adı...">
+            </div>
+            <div class="form-group">
+              <label for="desc_tr">Açıklama</label>
+              <textarea id="desc_tr" name="desc_tr" placeholder="Detaylı açıklama..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="audio_tr">Ses Dosyası</label>
+              <input type="text" id="audio_tr" name="audio_tr" placeholder="assets/audio/dosya.mp3">
+            </div>
+          </div>
+        </div>
+
+        <!-- EN CONTENT -->
+        <div id="content-en" class="tab-content">
+          <div class="form-section">
+            <h3>English (EN) Content</h3>
+            <div class="form-group">
+              <label for="title_en">Title</label>
+              <input type="text" id="title_en" name="title_en" placeholder="Location name...">
+            </div>
+            <div class="form-group">
+              <label for="desc_en">Description</label>
+              <textarea id="desc_en" name="desc_en" placeholder="Detailed description..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="audio_en">Audio File</label>
+              <input type="text" id="audio_en" name="audio_en" placeholder="assets/audio/file.mp3">
+            </div>
+          </div>
+        </div>
+
+        <!-- DE CONTENT -->
+        <div id="content-de" class="tab-content">
+          <div class="form-section">
+            <h3>Deutsch (DE) Inhalt</h3>
+            <div class="form-group">
+              <label for="title_de">Titel</label>
+              <input type="text" id="title_de" name="title_de" placeholder="Ortsname...">
+            </div>
+            <div class="form-group">
+              <label for="desc_de">Beschreibung</label>
+              <textarea id="desc_de" name="desc_de" placeholder="Detaillierte Beschreibung..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="audio_de">Audiodatei</label>
+              <input type="text" id="audio_de" name="audio_de" placeholder="assets/audio/datei.mp3">
+            </div>
+          </div>
+        </div>
+
+        <!-- FR CONTENT -->
+        <div id="content-fr" class="tab-content">
+          <div class="form-section">
+            <h3>Français (FR) Contenu</h3>
+            <div class="form-group">
+              <label for="title_fr">Titre</label>
+              <input type="text" id="title_fr" name="title_fr" placeholder="Nom du lieu...">
+            </div>
+            <div class="form-group">
+              <label for="desc_fr">Description</label>
+              <textarea id="desc_fr" name="desc_fr" placeholder="Description détaillée..."></textarea>
+            </div>
+            <div class="form-group">
+              <label for="audio_fr">Fichier Audio</label>
+              <input type="text" id="audio_fr" name="audio_fr" placeholder="assets/audio/fichier.mp3">
+            </div>
+          </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div id="content-settings" class="tab-content">
+          <div class="two-col">
+            <div>
+              <div class="form-section">
+                <h3>Genel Bilgiler</h3>
+                <div class="form-group">
+                  <label for="loc_id">Lokasyon ID (Sabit)</label>
+                  <input type="text" id="loc_id" name="loc_id" readonly style="background: #f0f0f0; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                  <label for="loc_city">Şehir</label>
+                  <input type="text" id="loc_city" name="loc_city" placeholder="budapest">
+                </div>
+                <div class="form-group">
+                  <label for="loc_builtYear">Yapım Yılı</label>
+                  <input type="text" id="loc_builtYear" name="loc_builtYear" placeholder="1896">
+                </div>
+                <div class="form-group">
+                  <label for="loc_thumbnailUrl">Resim Adı</label>
+                  <input type="text" id="loc_thumbnailUrl" name="loc_thumbnailUrl" placeholder="budapest_001.jpg">
+                </div>
+                <div class="form-group">
+                  <label for="loc_isPublished">Yayın Durumu</label>
+                  <select id="loc_isPublished" name="loc_isPublished">
+                    <option value="true">✓ Yayında</option>
+                    <option value="false">✗ Gizli</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <h3>Kategoriler & Etiketler</h3>
+                <div class="form-group">
+                  <label for="loc_category">Kategori</label>
+                  <select id="loc_category" name="loc_category">
+                    <option value="">-- Kategori Seçin --</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Etiketler</label>
+                  <div class="tags-container" id="loc_tags_container"></div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="form-section">
+                <h3>Konum (Harita)</h3>
+                <div class="map-search-container">
+                  <input type="text" id="mapSearchInput" placeholder="Yer adı ara...">
+                  <button type="button" id="mapSearchBtn">🔍 Ara</button>
+                  <div id="searchResultsDropdown" class="search-results-dropdown"></div>
+                </div>
+                <div id="editMap"></div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="loc_lat">Enlem</label>
+                    <input type="text" id="loc_lat" name="loc_lat" placeholder="47.4979">
+                  </div>
+                  <div class="form-group">
+                    <label for="loc_lng">Boylam</label>
+                    <input type="text" id="loc_lng" name="loc_lng" placeholder="19.0402">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button type="submit">💾 Kaydet</button>
+          <button type="button" id="deleteBtn">🗑️ Sil</button>
+        </div>
+      </form>
+
+      <div id="placeholder" class="placeholder">
+        <p>Lokasyon seçin veya yeni lokasyon ekleyin</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- SILME ONAY MODALI -->
+  <div id="deleteModalOverlay" class="delete-modal-overlay">
+    <div class="delete-modal-content">
+      <div class="delete-modal-icon">⚠️</div>
+      <h3>Lokasyonu Sil?</h3>
+      <p>Bu işlem geri alınamaz.</p>
+      <div class="delete-modal-location" id="deleteModalLocationName"></div>
+      <div class="delete-modal-buttons">
+        <button class="delete-modal-btn-cancel" id="deleteModalCancel">İptal</button>
+        <button class="delete-modal-btn-confirm" id="deleteModalConfirm">Evet, Sil</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import './src/admin_locations_style.css'
+    import './src/admin_style.css'
+    import './src/admin_script.js'
+  </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+</body>
+</html>
