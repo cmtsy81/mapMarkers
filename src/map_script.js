@@ -535,6 +535,10 @@ async function updateLocationList() {
 /**
  * Marker veya liste öğesine tıklandığında detay çek
  */
+
+// DOSYA: map_script.js
+// FONKSİYON: window.handleMarkerClick
+
 window.handleMarkerClick = async function (id) {
   if (!id) return;
 
@@ -542,108 +546,154 @@ window.handleMarkerClick = async function (id) {
   document.getElementById('detailsTitle').textContent = "Yükleniyor...";
   document.getElementById('detailsDesc').textContent = "...";
 
-  if (window.selectedLocationId && window.markerMap[window.selectedLocationId]) { // DÜZELTİLDİ
-    window.markerMap[window.selectedLocationId].setIcon(customIcon); // DÜZELTİLDİ
+  // Önceki seçileni temizle
+  if (window.selectedLocationId && window.markerMap[window.selectedLocationId]) {
+    window.markerMap[window.selectedLocationId].setIcon(customIcon);
   }
   document.querySelectorAll('.location-item.active').forEach(el => el.classList.remove('active'));
 
-  window.selectedLocationId = id; // DÜZELTİLDİ
-  if (window.markerMap[id]) { // DÜZELTİLDİ
-    window.markerMap[id].setIcon(customIconSelected); // DÜZELTİLDİ
+  window.selectedLocationId = id;
+
+  // Yeni olanı seç (ikon ve liste)
+  if (window.markerMap[id]) {
+    window.markerMap[id].setIcon(customIconSelected);
   }
   const listItem = document.querySelector(`[data-location-id="${id}"]`);
   if (listItem) listItem.classList.add('active');
 
-  // Detay verisini al (cache veya API)
-  let locationDetails = await window.getLocationDetails(id); // DÜZELTİLDİ
+  // --- İŞTE DEĞİŞİKLİK BURADA (2.A) ---
+
+  // 1. Tıklanan pinin "hafif" ama GÜNCEL olan verisini bul
+  const indexItem = window.geoIndexData.find(loc => loc.id === id);
+  if (!indexItem) {
+    console.error(`GeoIndex'te ${id} bulunamadı!`);
+    return; 
+  }
+  
+  // 2. O verinin "gerçek" zaman damgasını al (Adım 1'de eklediğimiz)
+  const trueLastUpdated = indexItem.lastUpdated; 
+
+  // 3. "Ağır" veriyi isterken, bu "gerçek" zaman damgasını ona kanıt olarak göster
+  let locationDetails = await window.getLocationDetails(id, trueLastUpdated); 
+
+  // --- DEĞİŞİKLİK BİTTİ ---
 
   if (!locationDetails) {
     document.getElementById('detailsTitle').textContent = "Hata oluştu";
     return;
   }
 
-  window.currentHeavyLocation = locationDetails; // DÜZELTİLDİ
+  window.currentHeavyLocation = locationDetails;
 
-  // Marker'ı keskin yap (opacity 1.0)
-  if (window.markerMap[id]) { // DÜZELTİLDİ
-    window.markerMap[id].setOpacity(1.0); // DÜZELTİLDİ
+  // Cache durumunu GÜNCEL (indexItem) veriye göre güncelle
+  if (window.markerMap[id]) {
+    window.markerMap[id].setOpacity(1.0);
   }
-
-  // İlgili index item'ını da güncelle (harita kaydırıldığında beyaz gösterilsin)
-  const indexItem = window.geoIndexData.find(loc => loc.id === id); // DÜZELTİLDİ
   if (indexItem) {
     indexItem.isCached = true;
   }
 
-  window.focusMapOnLocation(locationDetails); // DÜZELTİLDİ
-  window.showDetails(locationDetails); // DÜZELTİLDİ
+  // ODAKLANMA: Haritadaki GÜNCEL konumu (indexItem) kullan
+  window.focusMapOnLocation(indexItem);
+
+  // DETAY GÖSTERME: Cache'den veya API'den gelen doğrulanmış veriyi (locationDetails) kullan
+  window.showDetails(locationDetails);
 }
+
+
+
+
+
 
 /**
  * Smart cache logic: Marker detaylarını al
  */
-window.getLocationDetails = async function (id) {
-  // Memory cache kontrol
-  if (window.detailCache.has(id)) { // DÜZELTİLDİ
-    const cached = window.detailCache.get(id); // DÜZELTİLDİ
-    if (isCacheValid(cached.timestamp, DETAIL_CACHE_TIME)) {
-      console.log(`✅ Memory cache'den: ${id}`);
-      return cached.data;
-    }
+// DOSYA: map_script.js
+// FONKSİYON: window.getLocationDetails
+
+window.getLocationDetails = async function(id, trueLastUpdated) { // <-- 1. ARTIK 2 ARGÜMAN ALIYOR
+  
+  // (Memory cache'i şimdilik atlıyorum, o da bu mantıkla güncellenmeli ama IndexedDB'ye odaklanalım)
+  if (window.detailCache.has(id)) {
+     // ... (şimdilik bu kısmı geç, bir sonraki adımda bunu da akıllandırabiliriz)
   }
 
   // IndexedDB kontrol
   try {
-    const dbCached = await getFromIndexedDB('markerDetails', id);
-    if (dbCached && isCacheValid(dbCached.timestamp, DETAIL_CACHE_TIME)) {
-      console.log(`✅ IndexedDB cache'den: ${id}`);
-      window.detailCache.set(id, { data: dbCached.data, timestamp: dbCached.timestamp }); // DÜZELTİLDİ
+    const dbCached = await getFromIndexedDB('markerDetails', id); // Senin logdaki veriyi çektik
+
+    // --- 2. "KAPI GÖREVLİSİ" MANTIĞI BURADA ---
+    
+    // Soru 1: Cache'in SÜRESİ geçerli mi? (1 hafta)
+    const isTimeValid = dbCached && isCacheValid(dbCached.timestamp, DETAIL_CACHE_TIME);
+    
+    // Soru 2: Cache'in VERİSİ güncel mi? (Zaman damgaları eşleşiyor mu?)
+    const isDataValid = dbCached && dbCached.data.lastUpdated === trueLastUpdated;
+
+    // Sadece İKİSİ DE GEÇERLİYSE cache'i kullan
+    if (isTimeValid && isDataValid) { 
+      console.log(`✅ IndexedDB cache'den (Zaman ve Veri Doğrulandı): ${id}`);
+      window.detailCache.set(id, { data: dbCached.data, timestamp: dbCached.timestamp }); // (Memory cache'i de besle)
       return dbCached.data;
     }
+    
+    // Hata ayıklama için güzel bir log:
+    if (isTimeValid && !isDataValid) {
+      console.warn(`BAYAT CACHE TESPİT EDİLDİ: ${id}.`);
+      console.warn(` -> Cache'deki Zaman: ${dbCached ? dbCached.data.lastUpdated : 'yok'}`);
+      console.warn(` -> Olması Gereken: ${trueLastUpdated}`);
+    }
+    // --- KAPI GÖREVLİSİ MANTIĞI BİTTİ ---
+
   } catch (err) {
-    console.error('IndexedDB read hatası:', err);
+    console.error('IndexedDB okuma hatası:', err);
   }
 
-  // API'den çek (internet varsa)
+  // --- CACHE GEÇERSİZSE VEYA YOKSA API'DEN ÇEK ---
   if (isOnline()) {
     try {
-      console.log(`🔄 API'den çekiliyor: ${id}`);
+      console.log(`🔄 API'den çekiliyor (Cache bayat veya yok): ${id}`);
       const response = await fetch(`${API_BASE}/locations/details/${id}`);
       const locationDetails = await response.json();
-
-      // Memory ve IndexedDB'ye kaydet
+      
+      // Memory ve IndexedDB'ye kaydet (Artık taze veri elimizde)
       const cacheEntry = { data: locationDetails, timestamp: Date.now() };
-      window.detailCache.set(id, cacheEntry); // DÜZELTİLDİ
-
+      window.detailCache.set(id, cacheEntry);
+      
       try {
+        // 'data: locationDetails' sayesinde 'lastUpdated' bilgisi de
+        // 'data' objesinin içine gömülü olarak kaydediliyor.
         await saveToIndexedDB('markerDetails', {
           id: id,
-          data: locationDetails,
+          data: locationDetails, 
           timestamp: Date.now()
         });
       } catch (dbErr) {
         console.warn('IndexedDB save hatası:', dbErr);
       }
-
+      
       return locationDetails;
     } catch (err) {
-      console.error('API çekme hatası:', err);
-
-      // API fail ama cache varsa (eski)
-      const fallback = await getFromIndexedDB('markerDetails', id);
-      if (fallback) {
-        showNotification('⚠️ Eski veriler gösteriliyor', 'warning');
-        return fallback.data;
-      }
-
-      return null;
+       console.error('API çekme hatası:', err);
+       
+       // API fail ama cache varsa (eski)
+       const fallback = await getFromIndexedDB('markerDetails', id);
+       if (fallback) {
+         showNotification('⚠️ API hatası, eski veri gösteriliyor', 'warning');
+         return fallback.data;
+       }
+       
+       return null;
     }
   }
-
+  
   // Offline ve cache yok
   showNotification('📡 İnternet yok ve cache boş', 'error');
   return null;
 }
+
+
+
 
 window.focusMapOnLocation = function (loc) {
   let lat, lng;
