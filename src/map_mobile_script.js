@@ -414,36 +414,53 @@ function mapClickListener(e) {
 }
 
 const originalHandleMarkerClick = window.handleMarkerClick;
+
+
+// DOSYA: map_mobile_script.js
+
+// (const originalHandleMarkerClick... satırının altındaki fonksiyon)
+
 window.handleMarkerClick = async function(id) {
   if (!isMobileMode()) {
-    originalHandleMarkerClick(id);
+    originalHandleMarkerClick(id); // Masaüstüyse, DÜZELTTİĞİMİZ orijinali çağır
     return;
   }
 
-  selectedLocationId = id;
+  // --- MOBİL İÇİN DÜZELTME (UNUTTUĞUMUZ YER) ---
+  
+  window.selectedLocationId = id;
 
-  let locationDetails = await getLocationDetails(id);
+  // 1. "Hafif" ve GÜNCEL olan 'indexItem'ı bul
+  const indexItem = window.geoIndexData.find(loc => loc.id === id);
+  if (!indexItem) {
+    console.error(`(Mobil) GeoIndex'te ${id} bulunamadı!`);
+    return; 
+  }
+  
+  // 2. GÜNCEL 'lastUpdated' bilgisini al
+  const trueLastUpdated = indexItem.lastUpdated; 
+
+  // 3. "Ağır" veriyi, "en güncel" zaman damgasıyla birlikte iste
+  let locationDetails = await window.getLocationDetails(id, trueLastUpdated); 
+
   if (!locationDetails) return;
 
-  currentHeavyLocation = locationDetails;
-  
-  // Marker'ı PARLAK YAP (detay çekildiğinden cache'ye yazılmıştır)
-  if (markerMap[id]) {
-    markerMap[id].setOpacity(1.0);
-  }
-  
-  // Index item'ını da güncelle
-  const indexItem = geoIndexData.find(loc => loc.id === id);
-  if (indexItem) {
-    indexItem.isCached = true;
-  }
+  window.currentHeavyLocation = locationDetails;
 
-  focusMapOnLocation(locationDetails);
-  showDetails(locationDetails);
+  // 4. ODAKLANMA: Haritadaki GÜNCEL konumu (indexItem) kullan
+  window.focusMapOnLocation(indexItem);
+
+  // 5. DETAY GÖSTERME: Cache'den veya API'den gelen doğrulanmış veriyi (locationDetails) kullan
+  //    (Bu fonksiyon zaten 'locationDetails'i gösterir, 'indexItem'ı değil)
+  window.showDetails(locationDetails); 
+  
+  // 6. Mobil panelleri aç
   detailsPanel.classList.add('active');
-  detailsPanel.style.display = 'none';
+  detailsPanel.style.display = 'none'; // Önce tam ekranı hazırla ama gizle
 
-  openMobilePanel(id);
+  openMobilePanel(id); // Alttaki küçük paneli göster
+  
+  // --- DÜZELTME BİTTİ ---
 };
 
 
