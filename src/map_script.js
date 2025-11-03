@@ -129,24 +129,61 @@ function showNotification(message, type = 'info') {
 
 // --- HARITA VE VERİ BAŞLATMA ---
 
+// DOSYA: map_script.js
+// ESKİ initMap() FONKSİYONUNU BUNUNLA DEĞİŞTİR:
+
 function initMap() {
-  window.map = L.map('map').setView([50.0, 15.0], 5); // DÜZELTİLDİ
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  
+  // --- 1. HARİTA KATMANLARINI TANIMLA ---
+  
+  // Katman 1: Sokak Haritası (Mevcut haritan)
+  const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap',
     maxZoom: 19
-  }).addTo(window.map); // DÜZELTİLDİ
+  });
 
-  window.markerClusterGroup = L.markerClusterGroup(); // DÜZELTİLDİ
-  window.map.addLayer(window.markerClusterGroup); // DÜZELTİLDİ
+  // Katman 2: Uydu Haritası (Admin panelindeki gibi)
+  // (ESRI'nin ücretsiz ve yüksek kaliteli uydu servisini kullanıyoruz)
+  const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri &mdash; Kaynak: Esri, i-cubed, USDA, USGS...',
+    maxZoom: 19
+  });
 
-  // Cluster click event
-  window.markerClusterGroup.on('clusterclick', handleClusterClick); // DÜZELTİLDİ
+  // --- 2. HARİTAYI BAŞLAT ---
+  
+  // Haritayı, varsayılan katman (Sokak) yüklü olarak başlat
+  window.map = L.map('map', {
+    layers: [streetLayer] // Varsayılan olarak 'streetLayer'ı yükle
+  }).setView([50.0, 15.0], 5);
 
-  window.map.on('moveend', async () => { // DÜZELTİLDİ
+  // --- 3. KATMAN KONTROL MENÜSÜNÜ EKLE ---
+
+  // Kullanıcının seçebileceği haritaların listesi
+  const baseMaps = {
+    "Sokak": streetLayer,
+    "Uydu": satelliteLayer
+  };
+
+  // Sağ üste "Sokak/Uydu" seçme ikonunu ekle
+  L.control.layers(baseMaps).addTo(window.map);
+
+  // --- 4. CLUSTER GRUBUNU EKLE (Değişiklik yok) ---
+  window.markerClusterGroup = L.markerClusterGroup(); 
+  window.map.addLayer(window.markerClusterGroup); 
+
+  // --- 5. DİNLEYİCİLERİ EKLE (Değişiklik yok) ---
+  window.markerClusterGroup.on('clusterclick', handleClusterClick); 
+
+  window.map.on('moveend', async () => { 
     await updateMapMarkers();
     updateLocationList();
   });
 }
+
+
+
+
+
 
 /**
  * Cluster'a tıklandığında çalışır
