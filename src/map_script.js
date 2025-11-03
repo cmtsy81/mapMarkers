@@ -647,66 +647,65 @@ window.handleMarkerClick = async function (id) {
 
 
 
-
-
-/**
- * Smart cache logic: Marker detaylarını al
- */
 // DOSYA: map_script.js
-// FONKSİYON: window.getLocationDetails
+// FONKSİYON: window.getLocationDetails (NİHAİ, AKILLI VERSİYON)
 
-window.getLocationDetails = async function(id, trueLastUpdated) { // <-- 1. ARTIK 2 ARGÜMAN ALIYOR
+window.getLocationDetails = async function(id, trueLastUpdated) { // (Argümanlar doğru)
   
-  // (Memory cache'i şimdilik atlıyorum, o da bu mantıkla güncellenmeli ama IndexedDB'ye odaklanalım)
+  // (Memory cache'i de bu mantıkla güncelleyeceğiz)
   if (window.detailCache.has(id)) {
-     // ... (şimdilik bu kısmı geç, bir sonraki adımda bunu da akıllandırabiliriz)
+     const cached = window.detailCache.get(id);
+     // AKILLI KONTROL (Memory)
+     if (cached.data.lastUpdated === trueLastUpdated) {
+       console.log(`✅ Memory cache'den (Veri Doğrulandı): ${id}`);
+       return cached.data;
+     }
   }
 
   // IndexedDB kontrol
   try {
-    const dbCached = await getFromIndexedDB('markerDetails', id); // Senin logdaki veriyi çektik
+    const dbCached = await getFromIndexedDB('markerDetails', id); // Cache'i çektik
 
-    // --- 2. "KAPI GÖREVLİSİ" MANTIĞI BURADA ---
+    // --- "SENİN MANTIĞIN" BURADA (1 HAFTA KURALI KALDIRILDI) ---
     
-    // Soru 1: Cache'in SÜRESİ geçerli mi? (1 hafta)
-    const isTimeValid = dbCached && isCacheValid(dbCached.timestamp, DETAIL_CACHE_TIME);
-    
-    // Soru 2: Cache'in VERİSİ güncel mi? (Zaman damgaları eşleşiyor mu?)
+    // "Akıllı" Kural: Cache'deki verinin zamanı, olması gereken zamanla eşleşiyor mu?
     const isDataValid = dbCached && dbCached.data.lastUpdated === trueLastUpdated;
 
-    // Sadece İKİSİ DE GEÇERLİYSE cache'i kullan
-    if (isTimeValid && isDataValid) { 
-      console.log(`✅ IndexedDB cache'den (Zaman ve Veri Doğrulandı): ${id}`);
-      window.detailCache.set(id, { data: dbCached.data, timestamp: dbCached.timestamp }); // (Memory cache'i de besle)
+    if (isDataValid) { 
+      // "Süreye bakmadım bile. Veri taze."
+      console.log(`✅ IndexedDB cache'den (Veri Doğrulandı): ${id}`);
+      
+      // Memory cache'i de bu taze veriyle besle
+      window.detailCache.set(id, { data: dbCached.data, timestamp: dbCached.timestamp }); 
       return dbCached.data;
     }
     
-    // Hata ayıklama için güzel bir log:
-    if (isTimeValid && !isDataValid) {
-      console.warn(`BAYAT CACHE TESPİT EDİLDİ: ${id}.`);
-      console.warn(` -> Cache'deki Zaman: ${dbCached ? dbCached.data.lastUpdated : 'yok'}`);
-      console.warn(` -> Olması Gereken: ${trueLastUpdated}`);
+    // "Aptal" Kural (isTimeValid) buradan TAMAMEN KALDIRILDI.
+    
+    // Eğer 'dbCached' varsa ama 'isDataValid' değilse, loglayalım
+    if (dbCached && !isDataValid) {
+       console.warn(`BAYAT CACHE TESPİT EDİLDİ (Kalıcı Çözüm): ${id}.`);
+       console.warn(` -> Cache'deki Zaman: ${dbCached.data.lastUpdated}`);
+       console.warn(` -> Olması Gereken: ${trueLastUpdated}`);
     }
-    // --- KAPI GÖREVLİSİ MANTIĞI BİTTİ ---
+    // --- MANTIK BİTTİ ---
 
   } catch (err) {
     console.error('IndexedDB okuma hatası:', err);
   }
 
-  // --- CACHE GEÇERSİZSE VEYA YOKSA API'DEN ÇEK ---
+  // --- CACHE GEÇERSİZSE (BAYATSA) VEYA HİÇ YOKSA API'DEN ÇEK ---
   if (isOnline()) {
     try {
-      console.log(`🔄 API'den çekiliyor (Cache bayat veya yok): ${id}`);
+      console.log(`🔄 API'den çekiliyor (Veri bayat veya yok): ${id}`);
       const response = await fetch(`${API_BASE}/locations/details/${id}`);
       const locationDetails = await response.json();
       
       // Memory ve IndexedDB'ye kaydet (Artık taze veri elimizde)
-      const cacheEntry = { data: locationDetails, timestamp: Date.now() };
+      const cacheEntry = { data: locationDetails, timestamp: Date.now() }; // 'timestamp'i hâlâ tutuyoruz, belki ilerde 'en son ne zaman kullandık' diye gerekir.
       window.detailCache.set(id, cacheEntry);
       
       try {
-        // 'data: locationDetails' sayesinde 'lastUpdated' bilgisi de
-        // 'data' objesinin içine gömülü olarak kaydediliyor.
         await saveToIndexedDB('markerDetails', {
           id: id,
           data: locationDetails, 
@@ -720,13 +719,12 @@ window.getLocationDetails = async function(id, trueLastUpdated) { // <-- 1. ARTI
     } catch (err) {
        console.error('API çekme hatası:', err);
        
-       // API fail ama cache varsa (eski)
+       // API fail ama cache varsa (en son çare, bayat da olsa göster)
        const fallback = await getFromIndexedDB('markerDetails', id);
        if (fallback) {
-         showNotification('⚠️ API hatası, eski veri gösteriliyor', 'warning');
+         showNotification('⚠️ API hatası, cache\'deki eski veri gösteriliyor', 'warning');
          return fallback.data;
        }
-       
        return null;
     }
   }
@@ -735,6 +733,8 @@ window.getLocationDetails = async function(id, trueLastUpdated) { // <-- 1. ARTI
   showNotification('📡 İnternet yok ve cache boş', 'error');
   return null;
 }
+
+
 
 
 
