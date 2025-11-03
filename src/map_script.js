@@ -950,20 +950,20 @@ window.toggleSpeech = function () {
   utterance.lang = targetLangCode; // Dili yine de belirt (fallback için önemli)
 
   // --- 5. EN İYİ SESİ BULMA VE ATAMA (YENİ EKLEME) ---
-  if (availableVoices.length > 0) {
-    let bestVoice = null;
+  /*if (availableVoices.length > 0) {
+    let bestVoice = null;*/
 
     // Öncelik 1: İsimle ara (Yüksek Kaliteli Premium Sesler)
-    if (window.currentLang === 'tr') {
+    /*if (window.currentLang === 'tr') {
       bestVoice = availableVoices.find(v => v.name === 'Yelda' && v.lang === 'tr-TR'); // Apple/iOS/macOS
       if (!bestVoice) bestVoice = availableVoices.find(v => v.name === 'Cem' && v.lang === 'tr-TR'); // Microsoft/Windows
     } else if (window.currentLang === 'en') {
       bestVoice = availableVoices.find(v => v.name === 'Daniel' && v.lang === 'en-GB'); // Apple/UK
-    }
+    }*/
     // (Diğer diller için de 'en iyi' sesleri buraya ekleyebiliriz)
 
     // Öncelik 2: O dildeki "varsayılan" (default) sesi bul
-    if (!bestVoice) {
+    /*if (!bestVoice) {
       bestVoice = availableVoices.find(v => v.lang === targetLangCode && v.default === true);
     }
 
@@ -980,7 +980,7 @@ window.toggleSpeech = function () {
       // Hiç bulamazsak, tarayıcının varsayılanına bırak (mevcut "berbat" durum)
       console.warn(`'${targetLangCode}' için özel ses bulunamadı. Varsayılan kullanılıyor.`);
     }
-  }
+  }*/
   // --- YENİ EKLEME BİTTİ ---
 
   // --- 6. Buton Simgelerini Güncelleme (Başlangıç ve Bitiş) ---
