@@ -274,7 +274,7 @@ function createMobilePanel() {
     height: 15vh;
     background: #ffffff;
     border-top: 1px solid #e8e8e8;
-    z-index: 999;
+    z-index: 1010;
     display: none;
     flex-direction: column;
     padding: 12px;
