@@ -221,81 +221,110 @@ function handleClusterClick(e) {
   });
 }
 
+
+
+
+
+// DOSYA: map_script.js
+// ESKİ loadClusterDetails FONKSİYONUNU BUNUNLA DEĞİŞTİR:
+
 /**
- * Cluster'daki markerların detaylarını indir
+ * Cluster'daki markerların detaylarını indir (AKILLI CACHE VERSİYONU)
  */
 async function loadClusterDetails(markerIds) {
   if (!markerIds || markerIds.length === 0) return;
 
-  const toFetch = [];
-  const cached = {};
+  const toFetch = []; // API'den çekileceklerin listesi
+  const cached = {};  // Zaten cache'de olan (ve taze olan) verilerin listesi
 
-  // Hangileri cache'de var, hangisi yok kontrol et
+  // --- "TANE TANE" KONTROL DÖNGÜSÜ ---
+  // Cluster'daki her bir 'id' için:
   for (let id of markerIds) {
     try {
-      const cached_data = await getFromIndexedDB('markerDetails', id);
+      
+      // 1. "Ağır" Cache'i Kontrol Et (IndexedDB'de ne var?)
+      const dbCached = await getFromIndexedDB('markerDetails', id);
+      
+      // 2. "Hafif" Veriyi Kontrol Et (Olması gereken 'lastUpdated' ne?)
+      const indexItem = window.geoIndexData.find(item => item.id === id);
+      const trueLastUpdated = indexItem ? indexItem.lastUpdated : null; // "Hakikatin" zaman damgası
 
-      if (cached_data) {
-        const isValid = isCacheValid(cached_data.timestamp, DETAIL_CACHE_TIME);
-        const age = Math.floor((Date.now() - cached_data.timestamp) / 1000 / 60); // dakika
+      // 3. "Akıllı" Kuralı Uygula (SENİN MANTIĞIN)
+      //    "Aptal" 1 hafta kuralı (isTimeValid) buradan kaldırıldı.
+      const isDataValid = dbCached && trueLastUpdated && dbCached.data.lastUpdated === trueLastUpdated;
 
-        if (cached_data.timestamp && isValid) {
-          console.log(`✅ Cache geçerli: ${id} (${age} dakika eski)`);
-          cached[id] = cached_data.data;
-        } else {
-          console.log(`⏰ Cache eski: ${id} (${age} dakika eski, max: ${DETAIL_CACHE_TIME / 1000 / 60 / 60} saat)`);
-          toFetch.push(id);
-        }
+      if (isDataValid) {
+        // VERİ GEÇERLİ: Cache'i kullan
+        console.log(`✅ Cluster Cache (Veri Doğrulandı): ${id}`);
+        cached[id] = dbCached.data;
       } else {
-        console.log(`❌ Cache boş: ${id}`);
+        // VERİ BAYAT veya YOK: API'den çekme listesine ekle
+        if (dbCached && !isDataValid) {
+           console.warn(`BAYAT CLUSTER CACHE: ${id}. (DB: ${dbCached.data.lastUpdated}, Olması gereken: ${trueLastUpdated})`);
+        } else {
+           console.log(`❌ Cluster Cache boş: ${id}`);
+        }
         toFetch.push(id);
       }
     } catch (err) {
-      console.log(`❌ Cache read hatası: ${id} -`, err.message);
+      console.log(`❌ Cluster Cache read hatası: ${id} -`, err.message);
       toFetch.push(id);
     }
   }
+  // --- KONTROL DÖNGÜSÜ BİTTİ ---
 
+
+  // --- VERİ ÇEKME VE KAYDETME (Bu kısım aynı, değişiklik yok) ---
+  
   // Eksikleri API'den çek
   if (toFetch.length > 0 && isOnline()) {
     try {
       const response = await fetch(`${API_BASE}/locations/cluster-details?ids=${toFetch.join(',')}`);
       const freshData = await response.json();
 
-      // Yeni veriler cache'e yaz
+      // Yeni verileri cache'e yaz
       for (let item of freshData) {
-        cached[item.id] = item;
+        cached[item.id] = item; // 'cached' objesine yeni gelenleri de ekle
         await saveToIndexedDB('markerDetails', {
           id: item.id,
-          data: item,
-          timestamp: Date.now()
+          data: item, // 'data'nın içinde taze 'lastUpdated' da var
+          timestamp: Date.now() // O "uzun rakam" (belki ileride lazım olur)
         });
       }
-
-      console.log(`✅ ${toFetch.length} marker detayı indirildi`);
-      // Cluster detaylarını göster
+      
+      console.log(`✅ ${toFetch.length} marker detayı API'den indirildi`);
+      
+      // Cluster detaylarını göster (Hem taze olanlar hem cache'den gelenler)
       showClusterDetails(Object.values(cached));
+      
     } catch (err) {
       console.error('Cluster detayları indirilemedi:', err);
       if (Object.keys(cached).length === 0) {
         showNotification('⚠️ Veri indirilemedi', 'error');
         return;
       }
-      // Kısmi veri bile varsa göster
+      // Kısmi veri bile varsa (sadece cache'dekiler) göster
       showClusterDetails(Object.values(cached));
     }
-  } else if (toFetch.length > 0 && !isOnline()) {
+  } 
+  // Sadece çevrimdışı ve bazıları cache'deyse...
+  else if (toFetch.length > 0 && !isOnline()) {
     if (Object.keys(cached).length === 0) {
       showNotification('📡 İnternet bağlantısı yok ve cache boş', 'error');
       return;
     }
-    showNotification('📡 Çevrimdışı mod. Eski veriler gösteriliyor', 'warning');
+    showNotification('📡 Çevrimdışı mod. Sadece cache\'deki eski veriler gösteriliyor', 'warning');
     showClusterDetails(Object.values(cached));
-  } else if (toFetch.length === 0 && Object.keys(cached).length > 0) {
-    // Tüm veriler cache'den geldi
+  } 
+  // Tüm veriler zaten cache'de taze olarak bulunduysa...
+  else if (toFetch.length === 0 && Object.keys(cached).length > 0) {
+    console.log('✅ Cluster\'daki tüm veriler cache\'de taze olarak bulundu.');
     showClusterDetails(Object.values(cached));
   }
 }
+
+
+
 
 /**
  * Cluster detaylarını sidebar'da göster
