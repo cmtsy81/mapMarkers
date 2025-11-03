@@ -11,7 +11,7 @@ const API_BASE = "https://history-markers.onrender.com/api/v1";
 const INDEX_CACHE_TIME = 5 * 60 * 1000; // 5 dakika (development)
 const DETAIL_CACHE_TIME = 24 * 60 * 60 * 1000; // 24 saat
 const MIN_ZOOM_TO_SHOW_LIST = 13;
-const CLUSTER_THRESHOLD = 20; // Cluster'da bu sayıdan az marker varsa detayları indir
+const CLUSTER_THRESHOLD = 50; // Cluster'da bu sayıdan az marker varsa detayları indir
 
 // --- CUSTOM MARKER İKONLARI ---
 const customIcon = L.icon({
@@ -41,6 +41,7 @@ window.selectedLocationId = null;
 window.markerMap = {};
 window.db;
 window.lastIndexFetch = 0;
+let availableVoices = []; // <-- BU YENİ GLOBAL DEĞİŞKENİ EKLE
 
 // --- İNDEXEDDB BAŞLATMA ---
 async function initIndexedDB() {
@@ -147,6 +148,32 @@ function initMap() {
     updateLocationList();
   });
 }
+
+
+
+/**
+ * Tarayıcıdaki mevcut TTS seslerini yükler ve 'availableVoices' listesini doldurur.
+ * Chrome gibi bazı tarayıcılarda bu işlem gecikmeli (asynchronous) olabilir.
+ */
+function loadAvailableVoices() {
+  // Ses listesini almayı dene
+  availableVoices = speechSynthesis.getVoices();
+  
+  // Eğer liste hemen gelmezse (gecikmeliyse),
+  // 'voiceschanged' (sesler değişti) olayı tetiklendiğinde tekrar al.
+  if (availableVoices.length === 0) {
+    speechSynthesis.onvoiceschanged = () => {
+      availableVoices = speechSynthesis.getVoices();
+      console.log('Ses listesi yüklendi (gecikmeli):', availableVoices.length);
+    };
+  } else {
+    // Liste anında geldiyse (Firefox, Safari)
+    console.log('Ses listesi yüklendi (anında):', availableVoices.length);
+  }
+}
+
+
+
 
 /**
  * Cluster'a tıklandığında çalışır
@@ -869,6 +896,29 @@ async function clearIndexCache() {
   }
 }
 
+
+
+/**
+ * Tarayıcıdaki mevcut TTS seslerini yükler ve 'availableVoices' listesini doldurur.
+ * Chrome gibi bazı tarayıcılarda bu işlem gecikmeli (asynchronous) olabilir.
+ */
+function loadAvailableVoices() {
+  // Ses listesini almayı dene
+  availableVoices = speechSynthesis.getVoices();
+  
+  // Eğer liste hemen gelmezse (gecikmeliyse),
+  // 'voiceschanged' (sesler değişti) olayı tetiklendiğinde tekrar al.
+  if (availableVoices.length === 0) {
+    speechSynthesis.onvoiceschanged = () => {
+      availableVoices = speechSynthesis.getVoices();
+      console.log('Ses listesi yüklendi (gecikmeli):', availableVoices.length);
+    };
+  } else {
+    // Liste anında geldiyse (Firefox, Safari)
+    console.log('Ses listesi yüklendi (anında):', availableVoices.length);
+  }
+}
+
 // --- BAŞLANGIÇ ---
 
 window.addEventListener('load', async () => {
@@ -884,6 +934,22 @@ window.addEventListener('load', async () => {
   loadCities();
   loadGeoIndex();
 
+
+// --- YENİ EKLENEN KOD BAŞLANGICI ---
+
+  // 1. TTS için sesleri arka planda yüklemeye başla
+  loadAvailableVoices(); 
+
+  // 2. TTS Butonuna tıklama olayını (onclick) buradan güvenle ekle
+  //    ('load' olayı bittiği için butonun DOM'da olduğundan eminiz)
+  const ttsButton = document.getElementById('ttsButton');
+  if (ttsButton) {
+    ttsButton.addEventListener('click', window.toggleSpeech);
+  }
+  // --- YENİ EKLENEN KOD SONU ---
+
+
+
   // Test amaçlı: Console'da clearAllCache() veya clearIndexCache() yazabilirsiniz
   window.clearAllCache = clearAllCache;
   window.clearIndexCache = clearIndexCache;
@@ -898,17 +964,16 @@ window.addEventListener('load', async () => {
  */
 window.toggleSpeech = function() {
   const ttsButton = document.getElementById('ttsButton');
+  if (!ttsButton) {
+    console.error('TTS Butonu DOM\'da bulunamadı!');
+    return; 
+  }
   const textToSpeak = document.getElementById('detailsDesc').textContent;
 
   // --- 1. Durdurma Mantığı ---
-  // Eğer zaten konuşuyorsa, durdur ve çık.
   if (speechSynthesis.speaking) {
     speechSynthesis.cancel();
-    // (onend olayı butonu otomatik olarak '▶️' yapacak)
-//<<<<<<< HEAD
-//=======
-    ttsButton.textContent = '▶️';  // ← EKLE: Play simgesine çevir
-//>>>>>>> 422baa4 (oku dutonu düzenleme)
+    // 'onend' olayı butonu otomatik olarak resetleyecek.
     return;
   }
 
@@ -922,28 +987,53 @@ window.toggleSpeech = function() {
   speechSynthesis.cancel();
 
   // --- 3. Dil Seçimi ---
-  // Bizim 'tr', 'en' gibi kodlarımızı, 'tr-TR', 'en-US' gibi standart kodlara çevirelim.
   const langMap = {
     'tr': 'tr-TR',
-    'en': 'en-GB', // İngiliz aksanı
+    'en': 'en-GB', 
     'de': 'de-DE',
     'fr': 'fr-FR'
   };
-  const targetLangCode = langMap[window.currentLang] || 'en-US'; // Bulamazsa Amerikan İngilizcesi
+  const targetLangCode = langMap[window.currentLang] || 'en-US'; 
 
   // --- 4. Konuşma Cümlesini (Utterance) Oluşturma ---
   const utterance = new SpeechSynthesisUtterance(textToSpeak);
+  utterance.lang = targetLangCode; // Dili yine de belirt (fallback için önemli)
   
-  // A. Tarayıcıya "Lütfen bu dilde bir ses bul" diyelim.
-  // Çoğu tarayıcı, o dil için en iyi/varsayılan sesi (örn: Yelda) otomatik seçer.
-  utterance.lang = targetLangCode;
-  
-  // B. (İsteğe bağlı - Garantici Yöntem)
-  // Tarayıcının ses listesini alıp manuel olarak da seçebiliriz.
-  // const voices = speechSynthesis.getVoices();
-  // utterance.voice = voices.find(v => v.lang === targetLangCode) || voices.find(v => v.lang.startsWith(window.currentLang));
+  // --- 5. EN İYİ SESİ BULMA VE ATAMA (YENİ EKLEME) ---
+  if (availableVoices.length > 0) {
+    let bestVoice = null;
+    
+    // Öncelik 1: İsimle ara (Yüksek Kaliteli Premium Sesler)
+    if (window.currentLang === 'tr') {
+      bestVoice = availableVoices.find(v => v.name === 'Yelda' && v.lang === 'tr-TR'); // Apple/iOS/macOS
+      if (!bestVoice) bestVoice = availableVoices.find(v => v.name === 'Cem' && v.lang === 'tr-TR'); // Microsoft/Windows
+    } else if (window.currentLang === 'en') {
+       bestVoice = availableVoices.find(v => v.name === 'Daniel' && v.lang === 'en-GB'); // Apple/UK
+    }
+    // (Diğer diller için de 'en iyi' sesleri buraya ekleyebiliriz)
+    
+    // Öncelik 2: O dildeki "varsayılan" (default) sesi bul
+    if (!bestVoice) {
+      bestVoice = availableVoices.find(v => v.lang === targetLangCode && v.default === true);
+    }
+    
+    // Öncelik 3: O dildeki HERHANGİ bir sesi bul
+    if (!bestVoice) {
+      bestVoice = availableVoices.find(v => v.lang === targetLangCode);
+    }
 
-  // --- 5. Buton Simgelerini Güncelleme (Başlangıç ve Bitiş) ---
+    // Bulduysak ata:
+    if (bestVoice) {
+      utterance.voice = bestVoice;
+      console.log('Kullanılan TTS Sesi:', bestVoice.name, `(${bestVoice.lang})`);
+    } else {
+      // Hiç bulamazsak, tarayıcının varsayılanına bırak (mevcut "berbat" durum)
+      console.warn(`'${targetLangCode}' için özel ses bulunamadı. Varsayılan kullanılıyor.`);
+    }
+  }
+  // --- YENİ EKLEME BİTTİ ---
+
+  // --- 6. Buton Simgelerini Güncelleme (Başlangıç ve Bitiş) ---
   utterance.onstart = () => {
     ttsButton.textContent = '⏹️'; // Durdur simgesi
   };
@@ -952,6 +1042,6 @@ window.toggleSpeech = function() {
     ttsButton.textContent = '▶️'; // Oynat simgesi
   };
 
-  // --- 6. Konuş! ---
+  // --- 7. Konuş! ---
   speechSynthesis.speak(utterance);
 }
