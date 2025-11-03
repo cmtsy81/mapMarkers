@@ -896,6 +896,7 @@ async function clearIndexCache() {
   }
 }
 
+<<<<<<< HEAD
 
 
 /**
@@ -920,7 +921,39 @@ function loadAvailableVoices() {
 }
 
 // --- BAŞLANGIÇ ---
+=======
+>>>>>>> 4a078a0 (sesleri değiştiremeye çalışıyoruz)
 
+
+
+
+
+// DOSYA: map_script.js (EN ALT KISIM)
+
+/**
+ * Tarayıcıdaki mevcut TTS seslerini yükler ve 'availableVoices' listesini doldurur.
+ * Chrome gibi bazı tarayıcılarda bu işlem gecikmeli (asynchronous) olabilir.
+ */
+function loadAvailableVoices() {
+  // Ses listesini almayı dene
+  availableVoices = speechSynthesis.getVoices();
+  
+  // Eğer liste hemen gelmezse (gecikmeliyse),
+  // 'voiceschanged' (sesler değişti) olayı tetiklendiğinde tekrar al.
+  if (availableVoices.length === 0) {
+    speechSynthesis.onvoiceschanged = () => {
+      availableVoices = speechSynthesis.getVoices();
+      console.log('Ses listesi yüklendi (gecikmeli):', availableVoices.length);
+    };
+  } else {
+    // Liste anında geldiyse (Firefox, Safari)
+    console.log('Ses listesi yüklendi (anında):', availableVoices.length);
+  }
+}
+
+
+// --- BAŞLANGIÇ ---
+// (Bu, senin dosyadaki orijinal 'load' listener'ın güncellenmiş halidir)
 window.addEventListener('load', async () => {
   try {
     await initIndexedDB();
@@ -930,12 +963,16 @@ window.addEventListener('load', async () => {
   }
 
   initMap();
-  loadCategories();
+  window.loadCategories(); // (Bunun window. olduğuna eminim)
   loadCities();
   loadGeoIndex();
 
+<<<<<<< HEAD
 
 // --- YENİ EKLENEN KOD BAŞLANGICI ---
+=======
+  // --- TTS İÇİN EKLENEN KOD BAŞLANGICI ---
+>>>>>>> 4a078a0 (sesleri değiştiremeye çalışıyoruz)
 
   // 1. TTS için sesleri arka planda yüklemeye başla
   loadAvailableVoices(); 
@@ -946,15 +983,23 @@ window.addEventListener('load', async () => {
   if (ttsButton) {
     ttsButton.addEventListener('click', window.toggleSpeech);
   }
+<<<<<<< HEAD
   // --- YENİ EKLENEN KOD SONU ---
 
 
+=======
+  // --- TTS İÇİN EKLENEN KOD SONU ---
+>>>>>>> 4a078a0 (sesleri değiştiremeye çalışıyoruz)
 
   // Test amaçlı: Console'da clearAllCache() veya clearIndexCache() yazabilirsiniz
   window.clearAllCache = clearAllCache;
   window.clearIndexCache = clearIndexCache;
   console.log('💡 Test için: clearAllCache() veya clearIndexCache() komutlarını kullanabilirsiniz');
 });
+
+
+
+
 
 
 // map_script.js dosyasının uygun bir yerine ekleyin
