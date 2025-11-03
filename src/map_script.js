@@ -11,7 +11,7 @@ const API_BASE = "https://history-markers.onrender.com/api/v1";
 const INDEX_CACHE_TIME = 5 * 60 * 1000; // 5 dakika (development)
 const DETAIL_CACHE_TIME = 24 * 60 * 60 * 1000; // 24 saat
 const MIN_ZOOM_TO_SHOW_LIST = 13;
-const CLUSTER_THRESHOLD = 20; // Cluster'da bu sayıdan az marker varsa detayları indir
+const CLUSTER_THRESHOLD = 50; // Cluster'da bu sayıdan az marker varsa detayları indir
 
 // --- CUSTOM MARKER İKONLARI ---
 const customIcon = L.icon({
@@ -165,7 +165,14 @@ function initMap() {
   };
 
   // Sağ üste "Sokak/Uydu" seçme ikonunu ekle
-  L.control.layers(baseMaps).addTo(window.map);
+  //L.control.layers(baseMaps).addTo(window.map);
+  L.control.layers(
+    baseMaps, 
+    null, // Overlay (ikinci) bir katman grubumuz olmadığı için 'null'
+    { position: 'bottomleft' } // <-- DÜZELTME: Menüyü sol alt köşeye taşı
+  ).addTo(window.map);
+
+
 
   // --- 4. CLUSTER GRUBUNU EKLE (Değişiklik yok) ---
   window.markerClusterGroup = L.markerClusterGroup(); 
