@@ -803,26 +803,81 @@ window.showDetails = function (loc) {
     tagsDiv.innerHTML = '<span style="color: #999; font-size: 13px;">Etiket yok</span>';
   }
 
+  // ... (tagsDiv... kodlarından sonra)
+
   const thumbnailImage = document.getElementById('thumbnailImage');
   const galleryPlaceholderContent = document.getElementById('galleryPlaceholderContent');
-  let imagePath = `/assets/images/demo.jpg`;
 
+  // --- 1. YOL (Öncelikli): Gerçek Thumbnail
+  let primaryPath = null;
   if (loc.thumbnailUrl) {
-    if (loc.thumbnailUrl.startsWith('/')) { imagePath = loc.thumbnailUrl; }
-    else if (loc.thumbnailUrl.startsWith('assets/')) { imagePath = `/${loc.thumbnailUrl}`; }
-    else { imagePath = `/assets/images/${loc.thumbnailUrl}`; }
+    if (loc.thumbnailUrl.startsWith('/')) { primaryPath = loc.thumbnailUrl; }
+    else if (loc.thumbnailUrl.startsWith('assets/')) { primaryPath = `/${loc.thumbnailUrl}`; }
+    else { primaryPath = `/assets/images/${loc.thumbnailUrl}`; } // (Bu /assets/images/ yolu hâlâ "Bavul Analojesi" sorunumuz olabilir, public/assets/images/ olmalı)
   }
 
-  thumbnailImage.onerror = () => {
-    galleryPlaceholderContent.style.display = 'flex';
-    thumbnailImage.style.display = 'none';
-    thumbnailImage.onerror = null;
-  };
+  // --- 2. YOL (Şehir Varsayılanı): Senin İsteğin
+  // Şehir adını al, küçük harfe çevir ve .jpg ekle (örn: "vienna" -> "vienna.jpg")
+  const cityFallbackPath = loc.city ? `/fallbacks/${loc.city.toLowerCase()}.jpg` : null;
+
+  // --- 3. YOL (Genel Varsayılan): Son Çare
+  const genericFallbackPath = `/assets/images/demo.jpg`; // (Eğer bunu da /fallbacks/demo.jpg yaptıysan yolu düzelt)
+
+
+  // --- HATA YAKALAMA ZİNCİRİ ---
+
+  // Önceki dinleyicileri temizle
+  thumbnailImage.onerror = null;
+  thumbnailImage.onload = null;
+
+  // Başarı Durumu (Resim bulunduğunda çalışır)
   thumbnailImage.onload = () => {
     galleryPlaceholderContent.style.display = 'none';
     thumbnailImage.style.display = 'block';
+    thumbnailImage.onerror = null; // Başarılı, artık hata dinleme.
   };
-  thumbnailImage.src = imagePath;
+
+  // Hata Durumu 3 (Son Çare)
+  // Eğer şehir resmi (cityFallbackPath) de yüklenemezse, genel 'demo.jpg'yi dene
+  const setGenericFallback = () => {
+    console.warn(`Şehir resmi de bulunamadı. Genel varsayılan deneniyor: ${genericFallbackPath}`);
+    thumbnailImage.onerror = () => {
+      // Artık bu da başarısız olursa, placeholder'ı göster
+      console.error("En son varsayılan (demo.jpg) bile yüklenemedi!");
+      galleryPlaceholderContent.style.display = 'flex';
+      thumbnailImage.style.display = 'none';
+    };
+    thumbnailImage.src = genericFallbackPath;
+  };
+
+  // Hata Durumu 2
+  // Eğer ana resim (primaryPath) yüklenemezse, şehir resmini (cityFallbackPath) dene
+  const setCityFallback = () => {
+    if (cityFallbackPath) {
+      console.log(`Thumbnail bulunamadı. Şehir varsayılanı deneniyor: ${cityFallbackPath}`);
+      thumbnailImage.onerror = setGenericFallback; // Eğer bu da başarısız olursa, 3. adımı çağır
+      thumbnailImage.src = cityFallbackPath;
+    } else {
+      // Şehir adı yoksa, direkt 3. adımı çağır
+      setGenericFallback();
+    }
+  };
+
+  // --- ZİNCİRİ BAŞLAT ---
+  if (primaryPath) {
+    // 1. Önce ana resmi (thumbnail) yüklemeyi dene
+    thumbnailImage.onerror = setCityFallback; // Başarısız olursa 2. adımı çağır
+    thumbnailImage.src = primaryPath;
+  } else {
+    // Ana resim hiç yoksa, direkt 2. adımla başla
+    setCityFallback();
+  }
+
+  
+  // ... (kodun kalanı)
+
+
+
 
   const audioSource = document.getElementById('audioSource');
   const audioPlayer = document.getElementById('audioPlayer');
