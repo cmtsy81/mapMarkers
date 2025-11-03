@@ -11,7 +11,7 @@ const API_BASE = "https://history-markers.onrender.com/api/v1";
 const INDEX_CACHE_TIME = 5 * 60 * 1000; // 5 dakika (development)
 const DETAIL_CACHE_TIME = 24 * 60 * 60 * 1000; // 24 saat
 const MIN_ZOOM_TO_SHOW_LIST = 13;
-const CLUSTER_THRESHOLD = 50; // Cluster'da bu sayıdan az marker varsa detayları indir
+const CLUSTER_THRESHOLD = 20; // Cluster'da bu sayıdan az marker varsa detayları indir
 
 // --- CUSTOM MARKER İKONLARI ---
 const customIcon = L.icon({
@@ -41,7 +41,6 @@ window.selectedLocationId = null;
 window.markerMap = {};
 window.db;
 window.lastIndexFetch = 0;
-let availableVoices = []; // <-- TTS İÇİN GLOBAL DEĞİŞKEN
 
 // --- İNDEXEDDB BAŞLATMA ---
 async function initIndexedDB() {
@@ -364,8 +363,8 @@ async function loadGeoIndex() {
   }
 }
 
-window.loadCategories = async function () {
-  try {
+window.loadCategories = async function() {
+    try {
     const res = await fetch(`${API_BASE}/categories`);
     const categories = await res.json();
     const select = document.getElementById('categoryFilter');
@@ -568,14 +567,14 @@ window.handleMarkerClick = async function (id) {
   const indexItem = window.geoIndexData.find(loc => loc.id === id);
   if (!indexItem) {
     console.error(`GeoIndex'te ${id} bulunamadı!`);
-    return;
+    return; 
   }
-
+  
   // 2. O verinin "gerçek" zaman damgasını al (Adım 1'de eklediğimiz)
-  const trueLastUpdated = indexItem.lastUpdated;
+  const trueLastUpdated = indexItem.lastUpdated; 
 
   // 3. "Ağır" veriyi isterken, bu "gerçek" zaman damgasını ona kanıt olarak göster
-  let locationDetails = await window.getLocationDetails(id, trueLastUpdated);
+  let locationDetails = await window.getLocationDetails(id, trueLastUpdated); 
 
   // --- DEĞİŞİKLİK BİTTİ ---
 
@@ -601,17 +600,22 @@ window.handleMarkerClick = async function (id) {
   window.showDetails(locationDetails);
 }
 
+
+
+
+
+
 /**
  * Smart cache logic: Marker detaylarını al
  */
 // DOSYA: map_script.js
 // FONKSİYON: window.getLocationDetails
 
-window.getLocationDetails = async function (id, trueLastUpdated) { // <-- 1. ARTIK 2 ARGÜMAN ALIYOR
-
+window.getLocationDetails = async function(id, trueLastUpdated) { // <-- 1. ARTIK 2 ARGÜMAN ALIYOR
+  
   // (Memory cache'i şimdilik atlıyorum, o da bu mantıkla güncellenmeli ama IndexedDB'ye odaklanalım)
   if (window.detailCache.has(id)) {
-    // ... (şimdilik bu kısmı geç, bir sonraki adımda bunu da akıllandırabiliriz)
+     // ... (şimdilik bu kısmı geç, bir sonraki adımda bunu da akıllandırabiliriz)
   }
 
   // IndexedDB kontrol
@@ -619,20 +623,20 @@ window.getLocationDetails = async function (id, trueLastUpdated) { // <-- 1. ART
     const dbCached = await getFromIndexedDB('markerDetails', id); // Senin logdaki veriyi çektik
 
     // --- 2. "KAPI GÖREVLİSİ" MANTIĞI BURADA ---
-
+    
     // Soru 1: Cache'in SÜRESİ geçerli mi? (1 hafta)
     const isTimeValid = dbCached && isCacheValid(dbCached.timestamp, DETAIL_CACHE_TIME);
-
+    
     // Soru 2: Cache'in VERİSİ güncel mi? (Zaman damgaları eşleşiyor mu?)
     const isDataValid = dbCached && dbCached.data.lastUpdated === trueLastUpdated;
 
     // Sadece İKİSİ DE GEÇERLİYSE cache'i kullan
-    if (isTimeValid && isDataValid) {
+    if (isTimeValid && isDataValid) { 
       console.log(`✅ IndexedDB cache'den (Zaman ve Veri Doğrulandı): ${id}`);
       window.detailCache.set(id, { data: dbCached.data, timestamp: dbCached.timestamp }); // (Memory cache'i de besle)
       return dbCached.data;
     }
-
+    
     // Hata ayıklama için güzel bir log:
     if (isTimeValid && !isDataValid) {
       console.warn(`BAYAT CACHE TESPİT EDİLDİ: ${id}.`);
@@ -651,42 +655,45 @@ window.getLocationDetails = async function (id, trueLastUpdated) { // <-- 1. ART
       console.log(`🔄 API'den çekiliyor (Cache bayat veya yok): ${id}`);
       const response = await fetch(`${API_BASE}/locations/details/${id}`);
       const locationDetails = await response.json();
-
+      
       // Memory ve IndexedDB'ye kaydet (Artık taze veri elimizde)
       const cacheEntry = { data: locationDetails, timestamp: Date.now() };
       window.detailCache.set(id, cacheEntry);
-
+      
       try {
         // 'data: locationDetails' sayesinde 'lastUpdated' bilgisi de
         // 'data' objesinin içine gömülü olarak kaydediliyor.
         await saveToIndexedDB('markerDetails', {
           id: id,
-          data: locationDetails,
+          data: locationDetails, 
           timestamp: Date.now()
         });
       } catch (dbErr) {
         console.warn('IndexedDB save hatası:', dbErr);
       }
-
+      
       return locationDetails;
     } catch (err) {
-      console.error('API çekme hatası:', err);
-
-      // API fail ama cache varsa (eski)
-      const fallback = await getFromIndexedDB('markerDetails', id);
-      if (fallback) {
-        showNotification('⚠️ API hatası, eski veri gösteriliyor', 'warning');
-        return fallback.data;
-      }
-
-      return null;
+       console.error('API çekme hatası:', err);
+       
+       // API fail ama cache varsa (eski)
+       const fallback = await getFromIndexedDB('markerDetails', id);
+       if (fallback) {
+         showNotification('⚠️ API hatası, eski veri gösteriliyor', 'warning');
+         return fallback.data;
+       }
+       
+       return null;
     }
   }
-
+  
   // Offline ve cache yok
   showNotification('📡 İnternet yok ve cache boş', 'error');
   return null;
 }
+
+
+
 
 window.focusMapOnLocation = function (loc) {
   let lat, lng;
@@ -746,48 +753,24 @@ window.showDetails = function (loc) {
 
   const audioSource = document.getElementById('audioSource');
   const audioPlayer = document.getElementById('audioPlayer');
-  
-  // --- MP3 HATA KONTROLÜ (DÜZELTİLMİŞ) ---
-  audioPlayer.onerror = null;
-  audioPlayer.oncanplay = null;
-
   if (audioPath) {
     let fullAudioPath = audioPath.startsWith('/') || audioPath.startsWith('assets/') ? `/${audioPath}` : `/assets/audio/${audioPath}`;
-    
-    audioPlayer.style.display = 'block';
-
-    audioPlayer.onerror = () => {
-      console.warn(`Ses dosyası yüklenemedi (404?): ${fullAudioPath}`);
-      audioPlayer.style.display = 'none';
-    };
-
-    audioPlayer.oncanplay = () => {
-      audioPlayer.onerror = null;
-    };
-    
     audioSource.src = fullAudioPath;
     audioPlayer.load();
-
+    audioPlayer.style.display = 'block';
   } else {
     audioPlayer.style.display = 'none';
   }
-  // --- MP3 HATA KONTROLÜ BİTTİ ---
 
   document.getElementById('detailsPanel').classList.add('active');
 }
 
 window.closeDetails = async function () {
-  speechSynthesis.cancel(); 
-  
-  // --- DÜZELTME: MOBİL PAUSE BUTON HATASI ---
-  // 'onend' olayı her durumda (cancel dahil) tetikleneceği için
-  // manuel olarak butonu resetlemeye gerek yok.
-  // const ttsButton = document.getElementById('ttsButton');
-  // if (ttsButton) {
-  //   ttsButton.textContent = '▶️';
-  // }
-  // --- DÜZELTME BİTTİ ---
-
+  speechSynthesis.cancel();
+  const ttsButton = document.getElementById('ttsButton');
+  if (ttsButton) {
+    ttsButton.textContent = '▶️';  // ← Play simgesine çevir
+  }
   document.getElementById('detailsPanel').classList.remove('active');
   if (window.selectedLocationId && window.markerMap[window.selectedLocationId]) { // DÜZELTİLDİ
     window.markerMap[window.selectedLocationId].setIcon(customIcon); // DÜZELTİLDİ
@@ -808,9 +791,9 @@ document.querySelectorAll('.lang-btn').forEach(btn => {
     btn.classList.add('active');
     window.currentLang = btn.dataset.lang; // DÜZELTİLDİ
 
-    window.loadCategories(); // DÜZELTİLDİ
-    window.throttledUpdateMarkers(); // DÜZELTİLDİ
-    window.throttledUpdateList(); // DÜZELTİLDİ
+    loadCategories();
+    throttledUpdateMarkers();
+    throttledUpdateList();
 
     if (window.currentHeavyLocation) { // DÜZELTİLDİ
       window.showDetails(window.currentHeavyLocation); // DÜZELTİLDİ
@@ -819,18 +802,18 @@ document.querySelectorAll('.lang-btn').forEach(btn => {
 });
 
 document.getElementById('searchInput').addEventListener('input', () => {
-  window.throttledUpdateMarkers(); // DÜZELTİLDİ
-  window.throttledUpdateList(); // DÜZELTİLDİ
+  throttledUpdateMarkers();
+  throttledUpdateList();
 });
 
 document.getElementById('cityFilter').addEventListener('change', () => {
-  window.throttledUpdateMarkers(); // DÜZELTİLDİ
-  window.throttledUpdateList(); // DÜZELTİLDİ
+  throttledUpdateMarkers();
+  throttledUpdateList();
 });
 
 document.getElementById('categoryFilter').addEventListener('change', () => {
-  window.throttledUpdateMarkers(); // DÜZELTİLDİ
-  window.throttledUpdateList(); // DÜZELTİLDİ
+  throttledUpdateMarkers();
+  throttledUpdateList();
 });
 
 //map.on('moveend', updateLocationList); // 'window.map' olmalı ama zaten 148. satırda var
@@ -886,44 +869,46 @@ async function clearIndexCache() {
   }
 }
 
-// --- TTS FONKSİYONLARI (BURADA TANIMLI, AŞAĞIDA ÇAĞRILIYOR) ---
+// --- BAŞLANGIÇ ---
 
-/**
- * Tarayıcıdaki mevcut TTS seslerini yükler ve 'availableVoices' listesini doldurur.
- * Chrome gibi bazı tarayıcılarda bu işlem gecikmeli (asynchronous) olabilir.
- */
-function loadAvailableVoices() {
-  // Ses listesini almayı dene
-  availableVoices = speechSynthesis.getVoices();
-
-  // Eğer liste hemen gelmezse (gecikmeliyse),
-  // 'voiceschanged' (sesler değişti) olayı tetiklendiğinde tekrar al.
-  if (availableVoices.length === 0) {
-    speechSynthesis.onvoiceschanged = () => {
-      availableVoices = speechSynthesis.getVoices();
-      console.log('Ses listesi yüklendi (gecikmeli):', availableVoices.length);
-    };
-  } else {
-    // Liste anında geldiyse (Firefox, Safari)
-    console.log('Ses listesi yüklendi (anında):', availableVoices.length);
+window.addEventListener('load', async () => {
+  try {
+    await initIndexedDB();
+    console.log('✅ IndexedDB başlatıldı');
+  } catch (err) {
+    console.error('IndexedDB hatasası:', err);
   }
-}
+
+  initMap();
+  loadCategories();
+  loadCities();
+  loadGeoIndex();
+
+  // Test amaçlı: Console'da clearAllCache() veya clearIndexCache() yazabilirsiniz
+  window.clearAllCache = clearAllCache;
+  window.clearIndexCache = clearIndexCache;
+  console.log('💡 Test için: clearAllCache() veya clearIndexCache() komutlarını kullanabilirsiniz');
+});
+
+
+// map_script.js dosyasının uygun bir yerine ekleyin
 
 /**
  * Açıklama metnini (TTS) okumayı başlatır veya durdurur.
  */
-window.toggleSpeech = function () {
+window.toggleSpeech = function() {
   const ttsButton = document.getElementById('ttsButton');
-  if (!ttsButton) {
-    console.error('TTS Butonu DOM\'da bulunamadı!');
-    return;
-  }
   const textToSpeak = document.getElementById('detailsDesc').textContent;
 
   // --- 1. Durdurma Mantığı ---
+  // Eğer zaten konuşuyorsa, durdur ve çık.
   if (speechSynthesis.speaking) {
     speechSynthesis.cancel();
-    // 'onend' olayı butonu otomatik olarak resetleyecek. (Mobildeki takılma hatası düzeltildi)
+    // (onend olayı butonu otomatik olarak '▶️' yapacak)
+//<<<<<<< HEAD
+//=======
+    ttsButton.textContent = '▶️';  // ← EKLE: Play simgesine çevir
+//>>>>>>> 422baa4 (oku dutonu düzenleme)
     return;
   }
 
@@ -937,95 +922,36 @@ window.toggleSpeech = function () {
   speechSynthesis.cancel();
 
   // --- 3. Dil Seçimi ---
+  // Bizim 'tr', 'en' gibi kodlarımızı, 'tr-TR', 'en-US' gibi standart kodlara çevirelim.
   const langMap = {
     'tr': 'tr-TR',
-    'en': 'en-GB',
+    'en': 'en-GB', // İngiliz aksanı
     'de': 'de-DE',
     'fr': 'fr-FR'
   };
-  const targetLangCode = langMap[window.currentLang] || 'en-US';
+  const targetLangCode = langMap[window.currentLang] || 'en-US'; // Bulamazsa Amerikan İngilizcesi
 
   // --- 4. Konuşma Cümlesini (Utterance) Oluşturma ---
   const utterance = new SpeechSynthesisUtterance(textToSpeak);
-  utterance.lang = targetLangCode; // Dili yine de belirt (fallback için önemli)
+  
+  // A. Tarayıcıya "Lütfen bu dilde bir ses bul" diyelim.
+  // Çoğu tarayıcı, o dil için en iyi/varsayılan sesi (örn: Yelda) otomatik seçer.
+  utterance.lang = targetLangCode;
+  
+  // B. (İsteğe bağlı - Garantici Yöntem)
+  // Tarayıcının ses listesini alıp manuel olarak da seçebiliriz.
+  // const voices = speechSynthesis.getVoices();
+  // utterance.voice = voices.find(v => v.lang === targetLangCode) || voices.find(v => v.lang.startsWith(window.currentLang));
 
-  // --- 5. EN İYİ SESİ BULMA VE ATAMA (YENİ EKLEME) ---
-  /*if (availableVoices.length > 0) {
-    let bestVoice = null;*/
-
-    // Öncelik 1: İsimle ara (Yüksek Kaliteli Premium Sesler)
-    /*if (window.currentLang === 'tr') {
-      bestVoice = availableVoices.find(v => v.name === 'Yelda' && v.lang === 'tr-TR'); // Apple/iOS/macOS
-      if (!bestVoice) bestVoice = availableVoices.find(v => v.name === 'Cem' && v.lang === 'tr-TR'); // Microsoft/Windows
-    } else if (window.currentLang === 'en') {
-      bestVoice = availableVoices.find(v => v.name === 'Daniel' && v.lang === 'en-GB'); // Apple/UK
-    }*/
-    // (Diğer diller için de 'en iyi' sesleri buraya ekleyebiliriz)
-
-    // Öncelik 2: O dildeki "varsayılan" (default) sesi bul
-    /*if (!bestVoice) {
-      bestVoice = availableVoices.find(v => v.lang === targetLangCode && v.default === true);
-    }
-
-    // Öncelik 3: O dildeki HERHANGİ bir sesi bul
-    if (!bestVoice) {
-      bestVoice = availableVoices.find(v => v.lang === targetLangCode);
-    }
-
-    // Bulduysak ata:
-    if (bestVoice) {
-      utterance.voice = bestVoice;
-      console.log('Kullanılan TTS Sesi:', bestVoice.name, `(${bestVoice.lang})`);
-    } else {
-      // Hiç bulamazsak, tarayıcının varsayılanına bırak (mevcut "berbat" durum)
-      console.warn(`'${targetLangCode}' için özel ses bulunamadı. Varsayılan kullanılıyor.`);
-    }
-  }*/
-  // --- YENİ EKLEME BİTTİ ---
-
-  // --- 6. Buton Simgelerini Güncelleme (Başlangıç ve Bitiş) ---
+  // --- 5. Buton Simgelerini Güncelleme (Başlangıç ve Bitiş) ---
   utterance.onstart = () => {
     ttsButton.textContent = '⏹️'; // Durdur simgesi
   };
-
+  
   utterance.onend = () => {
     ttsButton.textContent = '▶️'; // Oynat simgesi
   };
 
-  // --- 7. Konuş! ---
+  // --- 6. Konuş! ---
   speechSynthesis.speak(utterance);
 }
-
-// --- BAŞLANGIÇ ---
-window.addEventListener('load', async () => {
-  try {
-    await initIndexedDB();
-    console.log('✅ IndexedDB başlatıldı');
-  } catch (err) {
-    console.error('IndexedDB hatasası:', err);
-  }
-
-  initMap();
-  window.loadCategories(); // (Bunun window. olduğuna eminim)
-  loadCities();
-  loadGeoIndex();
-
-
-  // --- YENİ EKLENEN KOD BAŞLANGICI ---
-
-  // 1. TTS için sesleri arka planda yüklemeye başla
-  loadAvailableVoices();
-
-  // 2. TTS Butonuna tıklama olayını (onclick) buradan güvenle ekle
-  //    ('load' olayı bittiği için butonun DOM'da olduğundan eminiz)
-  const ttsButton = document.getElementById('ttsButton');
-  if (ttsButton) {
-    ttsButton.addEventListener('click', window.toggleSpeech);
-  }
-  // --- YENİ EKLENEN KOD SONU ---
-
-  // Test amaçlı: Console'da clearAllCache() veya clearIndexCache() yazabilirsiniz
-  window.clearAllCache = clearAllCache;
-  window.clearIndexCache = clearIndexCache;
-  console.log('💡 Test için: clearAllCache() veya clearIndexCache() komutlarını kullanabilirsiniz');
-});
