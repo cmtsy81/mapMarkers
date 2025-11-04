@@ -13,6 +13,7 @@ let mobilePanel = null;
 let detailsPanel = document.getElementById('detailsPanel');
 let userLocationMarker = null;
 let watchPositionId = null;
+let isTrackingPaused = false;
 
 // ===== FLOATING CONTROLS (Layer Dropdown + Dil Dropdown + Konum Bul) =====
 
@@ -224,20 +225,27 @@ function createFloatingControls() {
     justify-content: center;
   `;
 
-  let isTracking = false;
+  // Durum: 0 = kapalı, 1 = aktif takip, 2 = uyuyan takip
+  let trackingState = 0;
 
   locationBtn.addEventListener('click', () => {
-    if (isTracking) {
+    if (trackingState === 0) {
+      // Durumu: Kapalı → Aktif Takip
+      trackingState = 1;
+      locationBtn.style.opacity = '1';
+      requestUserLocation();
+    } else if (trackingState === 1) {
+      // Durumu: Aktif Takip → Uyuyan Takip
+      trackingState = 2;
+      locationBtn.style.opacity = '0.6';
+      pauseLocationTracking();
+    } else if (trackingState === 2) {
+      // Durumu: Uyuyan Takip → Kapalı
+      trackingState = 0;
+      locationBtn.style.opacity = '0.5';
       stopLocationTracking();
       if (userLocationMarker) map.removeLayer(userLocationMarker);
       userLocationMarker = null;
-      locationBtn.style.opacity = '0.5';
-      locationBtn.textContent = '📍';
-      isTracking = false;
-    } else {
-      locationBtn.style.opacity = '1';
-      requestUserLocation();
-      isTracking = true;
     }
   });
 
@@ -357,6 +365,7 @@ function requestUserLocation() {
 
       btn.style.opacity = '1';
       btn.style.pointerEvents = 'auto';
+      isTrackingPaused = false;
       showNotification('✅ Konumunuz bulundu', 'info');
     },
     (error) => {
@@ -401,7 +410,11 @@ function startLocationTracking() {
     (position) => {
       const { latitude, longitude } = position.coords;
       showUserMarker(latitude, longitude);
-      centerMapOnUserLocation(latitude, longitude);
+      
+      // Takip uyumuyorsa (pauseLocationTracking çağrıldıysa) güncelleme yapma
+      if (!isTrackingPaused) {
+        centerMapOnUserLocation(latitude, longitude);
+      }
     },
     (error) => {
       console.error('Tracking error:', error);
@@ -414,15 +427,23 @@ function startLocationTracking() {
   );
 }
 
+function pauseLocationTracking() {
+  // Takipi durdur ama marker'ı göster, watch'i açık bırak
+  isTrackingPaused = true;
+  console.log('📍 Konum takibi uyuyor (harita kilitlendi)');
+}
+
 function stopLocationTracking() {
   if (watchPositionId) {
     navigator.geolocation.clearWatch(watchPositionId);
     watchPositionId = null;
   }
+  isTrackingPaused = false;
   if (userLocationMarker) {
     map.removeLayer(userLocationMarker);
     userLocationMarker = null;
   }
+  console.log('❌ Konum takibi kapalı');
 }
 
 // ===== MOBILE PANEL =====
@@ -636,6 +657,17 @@ document.getElementById('map').addEventListener('click', mapClickListener);
 window.addEventListener('load', () => {
   if (isMobileMode()) {
     createFloatingControls();
+  }
+
+  // Harita pan/zoom olaylarını dinle ve takipi durdur
+  if (window.map) {
+    window.map.on('move', () => {
+      if (!isTrackingPaused && watchPositionId && isMobileMode()) {
+        pauseLocationTracking();
+        const btn = document.getElementById('locationBtn');
+        if (btn) btn.style.opacity = '0.6'; // Buton durumunu güncelle
+      }
+    });
   }
 });
 
