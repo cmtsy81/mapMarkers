@@ -118,7 +118,7 @@ function initEditMap(lat, lng) {
     editMapInstance = null;
   }
   
-  editMapInstance = L.map('editMap').setView([lat, lng], 15);
+  editMapInstance = L.map('editMap').setView([lat, lng], 16);
   
   // BASE LAYERS
   const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
