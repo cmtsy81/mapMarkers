@@ -157,6 +157,7 @@ function initMap() {
   window.map = L.map('map', {
     layers: [streetLayer] // VarsayÄ±lan olarak 'streetLayer'Ä± yÃ¼kle
   }).setView([50.0, 15.0], 5);
+  
 
   // --- 3. KATMAN KONTROL MENÃœSÃœNÃœ EKLE ---
 
@@ -186,6 +187,12 @@ function initMap() {
     await updateMapMarkers();
     updateLocationList();
   });
+
+
+  // !!! İŞTE SİHİR BURADA: MOBİL DİNLEYİCİYİ ŞİMDİ EKLE !!!
+    if (typeof window.attachMapMoveListener === 'function') {
+        window.attachMapMoveListener(); 
+    }
 }
 
 // NOT: Bu initMap() fonksiyonu map_script.js'deki mevcut initMap() fonksiyonunu TAMAMEN DEÄžÄ°ÅžTÄ°RECEK.
@@ -236,6 +243,54 @@ function handleClusterClick(e) {
     console.log("Optimal zoom tamamlandı.");
   });
 }
+
+
+
+// map_script.js dosyanızın uygun bir yerine bu fonksiyonu ekleyin
+// (Örneğin, handleClusterClick'in hemen üstüne veya altına)
+
+let trackingState = 1; // Mobil takip durumu (1: Aktif, 2: Pasif)
+function isMobileMode() { 
+    // Bu fonksiyon mobil olup olmadığını kontrol eden başka bir JS dosyanızda olmalı.
+    // Eğer yoksa, geçici olarak true dönebilir, ancak doğru bir kontrol mekanizması eklemeniz gerekir.
+    return true; // Geçici: Eğer hep mobilde deniyorsanız.
+}
+
+window.attachMapMoveListener = function() {
+    // Burada haritanın var olduğunu ZATEN biliyoruz, bu yüzden timeout kontrolü kaldırıldı.
+    // Mobil JS'inizden gelen orijinal kodu, window.map.on'un başarılı olacağı yere koyuyoruz.
+
+    console.log('✅ Mobil "kullanıcı hareketi" dinleyicisi eklendi.');
+
+    // 'movestart' (KULLANICI veya KOD hareketi) dinleyicisi
+    window.map.on('movestart', (e) => { 
+        
+        // --- HATA ÇÖZÜMÜ BURADA: window.map.on artık çalışacak ---
+        
+        // Eğer 'e.originalEvent' YOKSA, bu, 'map.setView' gibi bir KOD
+        // tarafından tetiklenmiştir. Hiçbir şey yapma.
+        if (!e.originalEvent) {
+            return; 
+        }
+
+        // Bu, 'e.originalEvent' (TouchEvent/MouseEvent) olan gerçek bir KULLANICI hareketidir.
+        // Sadece "Aktif Takip" (State 1) modundaysak...
+        if (trackingState === 1 && isMobileMode()) {
+            trackingState = 2; // Durumu "Pasif" (State 2) yap
+            const btn = document.getElementById('locationBtn');
+            if (btn) btn.style.opacity = '0.6'; // Buton rengini pasif yap
+            
+            console.log("📍 Harita KULLANICI tarafından oynatıldı - Pasif Moda Geçildi ('movestart')");
+            
+            // showNotification fonksiyonunu window üzerinden çağırın, eğer global ise
+            if (typeof window.showNotification === 'function') { 
+                window.showNotification('📍 Pasif Moda Geçildi (Tekrar Tıkla)', 'info');
+            }
+        }
+    });
+}
+
+
 
 
 
