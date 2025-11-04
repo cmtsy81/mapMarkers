@@ -303,7 +303,7 @@ select:focus {
   margin-bottom: 28px;
 }
 .details-section:not(:last-child) {
-  padding-bottom: 10px;
+  padding-bottom: 5px;
   border-bottom: 1px solid #f0f0f0;
 }
 .details-section h3 {
@@ -311,7 +311,7 @@ select:focus {
   text-transform: uppercase;
   letter-spacing: 1px;
   color: #999;
-  margin: 0 0 8px 0;
+  margin: 0 0 4px 0;
   font-weight: 700;
 }
 .details-description {
@@ -448,4 +448,18 @@ select:focus {
     transform: translateY(0);
     opacity: 1;
   }
+}
+
+
+/* Resim altındaki gereksiz boşluğu sıfırla */
+#galleryPlaceholder img {
+  margin-bottom: 0; 
+  display: block; /* Tarayıcıların resim satırı boşluğunu (line-height) sıfırlar */
+}
+
+/* Audio (ses çalar) elementinin altındaki marjini sıfırla */
+#audioPlayer {
+  margin-top: 0; /* Audio elementinin varsayılan üst boşluğunu sıfırla */
+  margin-bottom: 0; /* Audio elementinin altındaki boşluğu tamamen kaldır */
+  padding: 0;
 }
