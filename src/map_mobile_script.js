@@ -14,6 +14,7 @@ let detailsPanel = document.getElementById('detailsPanel');
 let userLocationMarker = null;
 let watchPositionId = null;
 let trackingState = 0; // 0=Kapalı, 1=Aktif, 2=Pasif
+let mapMoveListenerAttached = false; // <-- BU YENİ SATIRI EKLE
 
 // ===== FLOATING CONTROLS (Layer Dropdown + Dil Dropdown + Konum Bul) =====
 
@@ -345,6 +346,15 @@ function handleLocationButtonClick() {
 }
 
 function startActiveTracking() {
+
+  // --- YARIŞ DURUMU DÜZELTMESİ ---
+  // Harita dinleyicisini, 'window.map'in yüklendiğinden emin olduğumuz
+  // bu ilk tıklama anında, sadece bir kez ekliyoruz.
+  if (!mapMoveListenerAttached) {
+    attachMapMoveListener(); 
+  }
+  // --- DÜZELTME BİTTİ ---
+
   if (!navigator.geolocation) {
     showNotification('Geolocation desteklenmiyor', 'error');
     return;
@@ -438,6 +448,46 @@ function stopAllTracking() {
   console.log('❌ Konum takibi kapalı');
   showNotification('❌ Takip Kapatıldı', 'info');
 }
+
+
+
+// DOSYA: map_mobile_script.js
+// stopAllTracking() FONKSİYONUNDAN SONRA BUNU EKLE
+
+/**
+ * Haritaya "Kullanıcı Hareketi" dinleyicisini ekler.
+ * Bu, 'move' yerine 'movestart' kullanır (senin önerin),
+ * böylece KULLANICININ ilk hareketi (pan/zoom) algılanır
+ * ve kodun kendi 'centerMap' hareketiyle çakışmaz ("Dost Ateşi"ni önler).
+ */
+function attachMapMoveListener() {
+  if (!window.map) {
+    console.error("Hata: 'map' nesnesi bulunamadı, hareket dinleyicisi eklenemedi.");
+    return;
+  }
+  
+  // 'move' yerine 'movestart' (hareketin başlangıcı) kullanıyoruz.
+  window.map.on('movestart', () => {
+    // Sadece "Aktif Takip" (State 1) modundaysak ve mobilsek...
+    if (trackingState === 1 && isMobileMode()) {
+      trackingState = 2; // Durumu "Pasif" (State 2) yap
+      const btn = document.getElementById('locationBtn');
+      if (btn) btn.style.opacity = '0.6'; // Buton rengini pasif yap
+      
+      console.log('📍 Harita KULLANICI tarafından oynatıldı - Pasif Moda Geçildi');
+      
+      // showNotification fonksiyonunun varlığını kontrol et (senin önerin)
+      if (typeof showNotification === 'function') {
+        showNotification('📍 Pasif Moda Geçildi (Tekrar Tıkla)', 'info');
+      }
+    }
+  });
+
+  mapMoveListenerAttached = true; // Bayrağı "eklendi" olarak ayarla
+  console.log('✅ Mobil '/movestart/' (kullanıcı hareketi) dinleyicisi başarıyla eklendi.');
+}
+
+
 
 function centerMapOnUserLocation(lat, lng) {
   map.setView([lat, lng], 16);
@@ -672,17 +722,7 @@ window.addEventListener('load', () => {
   }
 
   // Harita pan/zoom olaylarını dinle ve takipi pasife geç
-  if (window.map) {
-    window.map.on('move', () => {
-      if (trackingState === 1 && isMobileMode()) {
-        trackingState = 2;
-        const btn = document.getElementById('locationBtn');
-        if (btn) btn.style.opacity = '0.6';
-        console.log('📍 Harita oynatıldı - Pasif Moda Geçildi');
-        showNotification('📍 Pasif Moda Geçildi (Tekrar Tıkla)', 'info');
-      }
-    });
-  }
+  
 });
 
 window.addEventListener('resize', () => {
