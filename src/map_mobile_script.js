@@ -461,7 +461,7 @@ function stopAllTracking() {
  * böylece KULLANICININ ilk hareketi (pan/zoom) algılanır
  * ve kodun kendi 'centerMap' hareketiyle çakışmaz ("Dost Ateşi"ni önler).
  */
-fun// DOSYA: map_mobile_script.js
+// DOSYA: map_mobile_script.js
 // attachMapMoveListener FONKSİYONUNUN TAMAMINI BUNUNLA DEĞİŞTİR:
 
 function attachMapMoveListener() {
