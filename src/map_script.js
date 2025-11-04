@@ -536,7 +536,7 @@ async function updateMapMarkers() {
     let markerOpacity = loc.isCached ? 1.0 : 0.5;
 
     const marker = L.marker([lat, lng], {
-      icon: isSelected ? customIconSelected : customIcon,
+      icon: isSelected ? pinSelectedIcon : pinDefaultIcon,
       locationId: loc.id,
       opacity: markerOpacity
     });
@@ -637,7 +637,7 @@ window.handleMarkerClick = async function (id) {
 
   // Önceki seçileni temizle
   if (window.selectedLocationId && window.markerMap[window.selectedLocationId]) {
-    window.markerMap[window.selectedLocationId].setIcon(customIcon);
+    window.markerMap[window.selectedLocationId].setIcon(pinDefaultIcon);
   }
   document.querySelectorAll('.location-item.active').forEach(el => el.classList.remove('active'));
 
@@ -645,7 +645,7 @@ window.handleMarkerClick = async function (id) {
 
   // Yeni olanı seç (ikon ve liste)
   if (window.markerMap[id]) {
-    window.markerMap[id].setIcon(customIconSelected);
+    window.markerMap[id].setIcon(pinSelectedIcon);
   }
   const listItem = document.querySelector(`[data-location-id="${id}"]`);
   if (listItem) listItem.classList.add('active');
@@ -917,7 +917,7 @@ window.closeDetails = async function () {
   }
   document.getElementById('detailsPanel').classList.remove('active');
   if (window.selectedLocationId && window.markerMap[window.selectedLocationId]) { // DÜZELTİLDİ
-    window.markerMap[window.selectedLocationId].setIcon(customIcon); // DÜZELTİLDİ
+    window.markerMap[window.selectedLocationId].setIcon(pinDefaultIcon); // DÜZELTİLDİ
   }
   document.querySelectorAll('.location-item.active').forEach(el => el.classList.remove('active'));
   window.selectedLocationId = null; // DÜZELTİLDİ
