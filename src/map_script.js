@@ -16,14 +16,14 @@ const CLUSTER_THRESHOLD = 50; // Cluster'da bu sayıdan az marker varsa detaylar
 // --- CUSTOM MARKER İKONLARI ---
 const pinDefaultIcon = L.icon({ // <-- DEĞİŞKEN ADINI DA GÜNCELLEDİK
   iconUrl: '/pin_default.png', 
-  iconSize: [40, 25],
+  iconSize: [25, 40],
   iconAnchor: [20, 32],
   popupAnchor: [0, -32]
 });
 
 const pinSelectedIcon = L.icon({ // <-- DEĞİŞKEN ADINI DA GÜNCELLEDİK
   iconUrl: '/pin_selected.png', 
-  iconSize: [45, 25],
+  iconSize: [25, 45],
   iconAnchor: [20, 32],
   popupAnchor: [0, -32]
 });
