@@ -132,53 +132,54 @@ function showNotification(message, type = 'info') {
 // DOSYA: map_script.js
 // ESKİ initMap() FONKSİYONUNU BUNUNLA DEĞİŞTİR:
 
+// map_script.js - initMap() FONKSIYONUNU ŞÖYLE GÜNCELLEYİN:
+
 function initMap() {
   
-  // --- 1. HARİTA KATMANLARINI TANIMLA ---
+  // --- 1. HARÄ°TA KATMANLARINI TANIMLA ---
   
-  // Katman 1: Sokak Haritası (Mevcut haritan)
+  // Katman 1: Sokak HaritasÄ± (Mevcut haritan)
   const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap',
+    attribution: 'Â© OpenStreetMap',
     maxZoom: 19
   });
 
-  // Katman 2: Uydu Haritası (Admin panelindeki gibi)
-  // (ESRI'nin ücretsiz ve yüksek kaliteli uydu servisini kullanıyoruz)
+  // Katman 2: Uydu HaritasÄ± (Admin panelindeki gibi)
+  // (ESRI'nin Ã¼cretsiz ve yÃ¼ksek kaliteli uydu servisini kullanÄ±yoruz)
   const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles &copy; Esri &mdash; Kaynak: Esri, i-cubed, USDA, USGS...',
     maxZoom: 19
   });
 
-  // --- 2. HARİTAYI BAŞLAT ---
+  // --- 2. HARÄ°TAYI BAÅžLAT ---
   
-  // Haritayı, varsayılan katman (Sokak) yüklü olarak başlat
+  // HaritayÄ±, varsayÄ±lan katman (Sokak) yÃ¼klÃ¼ olarak baÅŸlat
   window.map = L.map('map', {
-    layers: [streetLayer] // Varsayılan olarak 'streetLayer'ı yükle
+    layers: [streetLayer] // VarsayÄ±lan olarak 'streetLayer'Ä± yÃ¼kle
   }).setView([50.0, 15.0], 5);
 
-  // --- 3. KATMAN KONTROL MENÜSÜNÜ EKLE ---
+  // --- 3. KATMAN KONTROL MENÃœSÃœNÃœ EKLE ---
 
-  // Kullanıcının seçebileceği haritaların listesi
+  // KullanÄ±cÄ±nÄ±n seÃ§ebileceÄŸi haritalarÄ±n listesi
   const baseMaps = {
     "Sokak": streetLayer,
     "Uydu": satelliteLayer
   };
 
-  // Sağ üste "Sokak/Uydu" seçme ikonunu ekle
-  //L.control.layers(baseMaps).addTo(window.map);
+  // --- HER YERDE GÃ–RÃœNÃœNSÜN: Layer control'u her zaman sol altta ekle ---
+  // Masaüstü: Direkt gözükür
+  // Mobil: Leaflet kontrol sol altta kalır (gizli değil), floating controls sağ üste ek butonlar sağlar
   L.control.layers(
     baseMaps, 
     null, // Overlay (ikinci) bir katman grubumuz olmadığı için 'null'
-    { position: 'bottomleft' } // <-- DÜZELTME: Menüyü sol alt köşeye taşı
+    { position: 'bottomleft' } // Sol alt köşe
   ).addTo(window.map);
 
-
-
-  // --- 4. CLUSTER GRUBUNU EKLE (Değişiklik yok) ---
+  // --- 4. CLUSTER GRUBUNU EKLE (DeÄŸiÅŸiklik yok) ---
   window.markerClusterGroup = L.markerClusterGroup(); 
   window.map.addLayer(window.markerClusterGroup); 
 
-  // --- 5. DİNLEYİCİLERİ EKLE (Değişiklik yok) ---
+  // --- 5. DÄ°NLEYÄ°CÄ°LERÄ° EKLE (DeÄŸiÅŸiklik yok) ---
   window.markerClusterGroup.on('clusterclick', handleClusterClick); 
 
   window.map.on('moveend', async () => { 
@@ -187,7 +188,22 @@ function initMap() {
   });
 }
 
+// NOT: Bu initMap() fonksiyonu map_script.js'deki mevcut initMap() fonksiyonunu TAMAMEN DEÄžÄ°ÅžTÄ°RECEK.
+// Geri kalanÄ± (handleClusterClick, loadClusterDetails vb.) aynÄ± kalacak.
 
+// --- OPSÄ°YONEL: Mobil CSS gizleme (Eğer çok dar ekranda layer kontrol sorunsa) ---
+// Bu kodu HTML <head> veya CSS dosyasına ekleyebilirsin (opsiyonel):
+/*
+@media (max-width: 480px) {
+  .leaflet-control-layers {
+    font-size: 12px;
+  }
+  .leaflet-control-layers-toggle {
+    width: 36px;
+    height: 36px;
+  }
+}
+*/
 
 
 

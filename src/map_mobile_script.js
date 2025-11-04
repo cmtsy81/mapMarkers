@@ -1,7 +1,7 @@
 /**
  * map_mobile_script.js
  * Mobile-only script: Bottom panel %15 + Detay button → Fullscreen
- * + Floating controls (Dil + Konum Bul) + Geolocation
+ * + Floating controls (Layer + Dil + Konum Bul) + Geolocation
  */
 
 let isMobileMode = () => {
@@ -14,7 +14,7 @@ let detailsPanel = document.getElementById('detailsPanel');
 let userLocationMarker = null;
 let watchPositionId = null;
 
-// ===== FLOATING CONTROLS (Dil + Konum Bul) =====
+// ===== FLOATING CONTROLS (Layer + Dil + Konum Bul) =====
 
 function createFloatingControls() {
   if (document.getElementById('floatingControls')) return;
@@ -31,6 +31,44 @@ function createFloatingControls() {
     gap: 10px;
     align-items: center;
   `;
+
+  // ===== LAYER KONTROL CONTAINER =====
+  const layerContainer = document.createElement('div');
+  layerContainer.id = 'layerContainer';
+  layerContainer.style.cssText = `
+    display: flex;
+    gap: 6px;
+    background: #ffffff;
+    padding: 8px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  `;
+
+  // Layer butonları (Sokak/Uydu)
+  const layers = [
+    { name: 'Sokak', key: 'street' },
+    { name: 'Uydu', key: 'satellite' }
+  ];
+
+  layers.forEach((layer, index) => {
+    const btn = document.createElement('button');
+    btn.textContent = layer.name;
+    btn.className = index === 0 ? 'layer-btn active' : 'layer-btn';
+    btn.dataset.layer = layer.key;
+    btn.style.cssText = `
+      padding: 6px 12px;
+      border: 1px solid #e0e0e0;
+      background: ${index === 0 ? '#0099ff' : '#f8f9fa'};
+      color: ${index === 0 ? '#ffffff' : '#888'};
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 11px;
+      transition: all 0.2s;
+    `;
+    btn.addEventListener('click', () => changeLayer(layer.key, btn));
+    layerContainer.appendChild(btn);
+  });
 
   // Dil butonları
   const langContainer = document.createElement('div');
@@ -84,7 +122,6 @@ function createFloatingControls() {
     justify-content: center;
   `;
 
-
   let isTracking = false;
 
   locationBtn.addEventListener('click', () => {
@@ -93,20 +130,19 @@ function createFloatingControls() {
       stopLocationTracking();
       if (userLocationMarker) map.removeLayer(userLocationMarker);
       userLocationMarker = null;
-      locationBtn.style.opacity = '0.5';  // Mat yap (kapalı)
+      locationBtn.style.opacity = '0.5';
       locationBtn.textContent = '📍';
       isTracking = false;
     } else {
       // Tracking kapalıysa başlat
-      locationBtn.style.opacity = '1';  // Parlak yap (açık)
+      locationBtn.style.opacity = '1';
       requestUserLocation();
       isTracking = true;
     }
   });
 
-// Başlangıçta mat yap
   locationBtn.style.opacity = '0.5';
-  
+
   locationBtn.addEventListener('mouseover', () => {
     locationBtn.style.transform = 'scale(1.1)';
     locationBtn.style.boxShadow = '0 4px 12px rgba(0,153,255,0.4)';
@@ -115,22 +151,40 @@ function createFloatingControls() {
     locationBtn.style.transform = 'scale(1)';
     locationBtn.style.boxShadow = '0 2px 8px rgba(0,153,255,0.3)';
   });
-  
 
+  container.appendChild(layerContainer);
   container.appendChild(langContainer);
   container.appendChild(locationBtn);
   document.body.appendChild(container);
+}
 
-  
+// Layer değiştir
+function changeLayer(layerKey, btn) {
+  // Buton stilini güncelle
+  document.querySelectorAll('#layerContainer .layer-btn').forEach(b => {
+    b.style.background = '#f8f9fa';
+    b.style.color = '#888';
+  });
+  btn.style.background = '#0099ff';
+  btn.style.color = '#ffffff';
+
+  // Leaflet layer control'deki butonlara da tıkla (senkronizasyon)
+  const leafletBtns = document.querySelectorAll('.leaflet-control-layers-selector');
+  if (leafletBtns.length > 0) {
+    leafletBtns.forEach(lb => {
+      if (layerKey === 'street' && lb.nextSibling.textContent.includes('Sokak')) {
+        if (!lb.checked) lb.click();
+      } else if (layerKey === 'satellite' && lb.nextSibling.textContent.includes('Uydu')) {
+        if (!lb.checked) lb.click();
+      }
+    });
+  }
 }
 
 // Dil değiştir (mobile)
-// map_mobile_script.js DOSYASINA EKLENECEK
-
-// Dil değiştir (mobile)
 function changeMobileLanguage(lang) {
-  window.currentLang = lang; // DÜZELTME: Global 'currentLang' değişkenini kullan
-  
+  window.currentLang = lang;
+
   // Dil butonlarını güncelle
   document.querySelectorAll('#floatingControls .lang-btn').forEach(btn => {
     if (btn.dataset.lang === lang) {
@@ -144,25 +198,21 @@ function changeMobileLanguage(lang) {
     }
   });
 
-  // DÜZELTME: Global 'window' üzerinden çağır
   window.loadCategories();
   window.throttledUpdateMarkers();
   window.throttledUpdateList();
 
-  if (window.currentHeavyLocation) { // Bu zaten 'window'daydı
-    window.showDetails(window.currentHeavyLocation); // Bu zaten 'window'daydı
+  if (window.currentHeavyLocation) {
+    window.showDetails(window.currentHeavyLocation);
   }
 
-  // Mobile panel açıksa güncelle
-  // 'mobilePanel' bu dosyanın kendi içinde, 'window.' gerekmez.
-  // 'selectedLocationId', 'geoIndexData', 'currentLang' ve 'allCategories' global olmalı.
   if (window.selectedLocationId && mobilePanel && mobilePanel.style.display === 'flex') {
     const location = window.geoIndexData.find(loc => loc.id === window.selectedLocationId);
     if (location) {
-        const title = location.translations?.[window.currentLang]?.title || location.id;
-        const categoryName = window.allCategories[location.categoryKey] || '-';
-        document.getElementById('mobileTitle').textContent = title;
-        document.getElementById('mobileCategory').textContent = `${location.city} • ${categoryName}`;
+      const title = location.translations?.[window.currentLang]?.title || location.id;
+      const categoryName = window.allCategories[location.categoryKey] || '-';
+      document.getElementById('mobileTitle').textContent = title;
+      document.getElementById('mobileCategory').textContent = `${location.city} • ${categoryName}`;
     }
   }
 }
@@ -179,16 +229,14 @@ function requestUserLocation() {
   btn.style.opacity = '0.5';
   btn.style.pointerEvents = 'none';
 
-  // İlk konum al
   navigator.geolocation.getCurrentPosition(
     (position) => {
       const { latitude, longitude } = position.coords;
       centerMapOnUserLocation(latitude, longitude);
       showUserMarker(latitude, longitude);
-      
-      // Sürekli tracking başlat
+
       startLocationTracking();
-      
+
       btn.style.opacity = '1';
       btn.style.pointerEvents = 'auto';
       showNotification('✅ Konumunuz bulundu', 'info');
@@ -259,7 +307,7 @@ function stopLocationTracking() {
   }
 }
 
-// ===== MOBILE PANEL (Existing Code) =====
+// ===== MOBILE PANEL =====
 
 function createMobilePanel() {
   if (document.getElementById('mobilePanelWrapper')) return;
@@ -415,55 +463,35 @@ function mapClickListener(e) {
 
 const originalHandleMarkerClick = window.handleMarkerClick;
 
-
-// DOSYA: map_mobile_script.js
-
-// (const originalHandleMarkerClick... satırının altındaki fonksiyon)
-
 window.handleMarkerClick = async function(id) {
   if (!isMobileMode()) {
-    originalHandleMarkerClick(id); // Masaüstüyse, DÜZELTTİĞİMİZ orijinali çağır
+    originalHandleMarkerClick(id);
     return;
   }
 
-  // --- MOBİL İÇİN DÜZELTME (UNUTTUĞUMUZ YER) ---
-  
   window.selectedLocationId = id;
 
-  // 1. "Hafif" ve GÜNCEL olan 'indexItem'ı bul
   const indexItem = window.geoIndexData.find(loc => loc.id === id);
   if (!indexItem) {
     console.error(`(Mobil) GeoIndex'te ${id} bulunamadı!`);
-    return; 
+    return;
   }
-  
-  // 2. GÜNCEL 'lastUpdated' bilgisini al
-  const trueLastUpdated = indexItem.lastUpdated; 
 
-  // 3. "Ağır" veriyi, "en güncel" zaman damgasıyla birlikte iste
-  let locationDetails = await window.getLocationDetails(id, trueLastUpdated); 
+  const trueLastUpdated = indexItem.lastUpdated;
+  let locationDetails = await window.getLocationDetails(id, trueLastUpdated);
 
   if (!locationDetails) return;
 
   window.currentHeavyLocation = locationDetails;
 
-  // 4. ODAKLANMA: Haritadaki GÜNCEL konumu (indexItem) kullan
   window.focusMapOnLocation(indexItem);
+  window.showDetails(locationDetails);
 
-  // 5. DETAY GÖSTERME: Cache'den veya API'den gelen doğrulanmış veriyi (locationDetails) kullan
-  //    (Bu fonksiyon zaten 'locationDetails'i gösterir, 'indexItem'ı değil)
-  window.showDetails(locationDetails); 
-  
-  // 6. Mobil panelleri aç
   detailsPanel.classList.add('active');
-  detailsPanel.style.display = 'none'; // Önce tam ekranı hazırla ama gizle
+  detailsPanel.style.display = 'none';
 
-  openMobilePanel(id); // Alttaki küçük paneli göster
-  
-  // --- DÜZELTME BİTTİ ---
+  openMobilePanel(id);
 };
-
-
 
 window.addEventListener('resize', () => {
   const wasOnMobile = mobilePanel?.style.display === 'flex';
@@ -501,4 +529,4 @@ window.addEventListener('resize', () => {
   }
 });
 
-console.log('✅ Mobile script yüklendi (geolocation + floating controls)');
+console.log('✅ Mobile script yüklendi (geolocation + floating controls + layer control)');
