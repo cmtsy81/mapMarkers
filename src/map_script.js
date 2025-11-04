@@ -14,17 +14,17 @@ const MIN_ZOOM_TO_SHOW_LIST = 13;
 const CLUSTER_THRESHOLD = 50; // Cluster'da bu sayıdan az marker varsa detayları indir
 
 // --- CUSTOM MARKER İKONLARI ---
-const customIcon = L.icon({
-  iconUrl: '/custom_marker.png',
-  iconSize: [40, 40],
-  iconAnchor: [16, 32],
+const pinDefaultIcon = L.icon({ // <-- DEĞİŞKEN ADINI DA GÜNCELLEDİK
+  iconUrl: '/pin_default.png', 
+  iconSize: [40, 25],
+  iconAnchor: [20, 32],
   popupAnchor: [0, -32]
 });
 
-const customIconSelected = L.icon({
-  iconUrl: '/custom_marker2.png',
-  iconSize: [40, 40],
-  iconAnchor: [16, 32],
+const pinSelectedIcon = L.icon({ // <-- DEĞİŞKEN ADINI DA GÜNCELLEDİK
+  iconUrl: '/pin_selected.png', 
+  iconSize: [45, 25],
+  iconAnchor: [20, 32],
   popupAnchor: [0, -32]
 });
 
