@@ -303,7 +303,7 @@ select:focus {
   margin-bottom: 28px;
 }
 .details-section:not(:last-child) {
-  padding-bottom: 20px;
+  padding-bottom: 10px;
   border-bottom: 1px solid #f0f0f0;
 }
 .details-section h3 {
@@ -311,7 +311,7 @@ select:focus {
   text-transform: uppercase;
   letter-spacing: 1px;
   color: #999;
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
   font-weight: 700;
 }
 .details-description {
