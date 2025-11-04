@@ -15,6 +15,7 @@ let userLocationMarker = null;
 let watchPositionId = null;
 let trackingState = 0; // 0=Kapalı, 1=Aktif, 2=Pasif
 let mapMoveListenerAttached = false; // <-- BU YENİ SATIRI EKLE
+let isProgrammaticMove = false;
 
 // ===== FLOATING CONTROLS (Layer Dropdown + Dil Dropdown + Konum Bul) =====
 
@@ -460,36 +461,59 @@ function stopAllTracking() {
  * böylece KULLANICININ ilk hareketi (pan/zoom) algılanır
  * ve kodun kendi 'centerMap' hareketiyle çakışmaz ("Dost Ateşi"ni önler).
  */
+fun// DOSYA: map_mobile_script.js
+// attachMapMoveListener FONKSİYONUNUN TAMAMINI BUNUNLA DEĞİŞTİR:
+
 function attachMapMoveListener() {
   if (!window.map) {
     console.error("Hata: 'map' nesnesi bulunamadı, hareket dinleyicisi eklenemedi.");
+    setTimeout(attachMapMoveListener, 500); // 500ms sonra tekrar dene
     return;
   }
   
-  // 'move' yerine 'movestart' (hareketin başlangıcı) kullanıyoruz.
+  // 'movestart' (KULLANICI hareketi) dinleyicisi
   window.map.on('movestart', () => {
-    // Sadece "Aktif Takip" (State 1) modundaysak ve mobilsek...
+    
+    // --- GÜVENLİK KONTROLÜ (Hata 1 Düzeltmesi) ---
+    // Eğer bayrak kalkmışsa (yani bu hareketi 'centerMap' kodumuz başlattıysa)
+    if (isProgrammaticMove) {
+      return; // Hiçbir şey yapma, bu "Dost Ateşi"ydi.
+    }
+    // --- KONTROL BİTTİ ---
+
+    // Bu, KULLANICI tarafından başlatılan gerçek bir harekettir.
+    // Sadece "Aktif Takip" (State 1) modundaysak...
     if (trackingState === 1 && isMobileMode()) {
       trackingState = 2; // Durumu "Pasif" (State 2) yap
       const btn = document.getElementById('locationBtn');
       if (btn) btn.style.opacity = '0.6'; // Buton rengini pasif yap
       
-      console.log('📍 Harita KULLANICI tarafından oynatıldı - Pasif Moda Geçildi');
+      // --- YAZIM HATASI DÜZELTMESİ (Hata 2 Düzeltmesi) ---
+      // (Dış tırnakları çift tırnak (") yaparak 'movestart' çakışması düzeltildi)
+      console.log("📍 Harita KULLANICI tarafından oynatıldı - Pasif Moda Geçildi ('movestart')");
+      // --- DÜZELTME BİTTİ ---
       
-      // showNotification fonksiyonunun varlığını kontrol et (senin önerin)
       if (typeof showNotification === 'function') {
         showNotification('📍 Pasif Moda Geçildi (Tekrar Tıkla)', 'info');
       }
     }
   });
 
+  // YENİ DİNLEYİCİ: "Bayrağı İndirme"
+  // Kodumuzun başlattığı hareket (setView) bittiğinde, bayrağı indirmeliyiz.
+  window.map.on('moveend', () => {
+    if (isProgrammaticMove) {
+      isProgrammaticMove = false; // BAYRAĞI İNDİR: "Benim (kod) işim bitti."
+    }
+  });
+
   mapMoveListenerAttached = true; // Bayrağı "eklendi" olarak ayarla
-  console.log('✅ Mobil '/movestart/' (kullanıcı hareketi) dinleyicisi başarıyla eklendi.');
+  console.log("✅ Mobil 'movestart' ve 'moveend' dinleyicileri başarıyla eklendi.");
 }
 
 
-
 function centerMapOnUserLocation(lat, lng) {
+  isProgrammaticMove = true; // BAYRAĞI KALDIR: "Dikkat, bu hareketi ben (kod) yapıyorum!"
   map.setView([lat, lng], 16);
 }
 
