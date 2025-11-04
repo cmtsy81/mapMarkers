@@ -136,7 +136,7 @@ function initEditMap(lat, lng) {
     name: 'Toner'
   });
   
-  streetLayer.addTo(editMapInstance);
+  satelliteLayer.addTo(editMapInstance);
   
   // LAYER CONTROL
   const baseLayers = {
