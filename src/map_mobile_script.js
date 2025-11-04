@@ -1,7 +1,7 @@
 /**
  * map_mobile_script.js
  * Mobile-only script: Bottom panel %15 + Detay button → Fullscreen
- * + Floating controls (Layer + Dil + Konum Bul) + Geolocation
+ * + Floating controls (Layer Dropdown + Dil Dropdown + Konum Bul) + Geolocation
  */
 
 let isMobileMode = () => {
@@ -14,7 +14,7 @@ let detailsPanel = document.getElementById('detailsPanel');
 let userLocationMarker = null;
 let watchPositionId = null;
 
-// ===== FLOATING CONTROLS (Layer + Dil + Konum Bul) =====
+// ===== FLOATING CONTROLS (Layer Dropdown + Dil Dropdown + Konum Bul) =====
 
 function createFloatingControls() {
   if (document.getElementById('floatingControls')) return;
@@ -29,22 +29,62 @@ function createFloatingControls() {
     display: flex;
     flex-direction: row;
     gap: 10px;
-    align-items: center;
+    align-items: flex-start;
   `;
 
-  // ===== LAYER KONTROL CONTAINER =====
-  const layerContainer = document.createElement('div');
-  layerContainer.id = 'layerContainer';
-  layerContainer.style.cssText = `
+  // ===== LAYER DROPDOWN =====
+  const layerDropdownWrapper = document.createElement('div');
+  layerDropdownWrapper.style.cssText = `
+    position: relative;
     display: flex;
-    gap: 6px;
-    background: #ffffff;
-    padding: 8px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    flex-direction: column;
   `;
 
-  // Layer butonları (Sokak/Uydu)
+  const layerToggleBtn = document.createElement('button');
+  layerToggleBtn.id = 'layerToggleBtn';
+  layerToggleBtn.textContent = '🗺️';
+  layerToggleBtn.style.cssText = `
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: #ffffff;
+    color: #0099ff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+
+  layerToggleBtn.addEventListener('mouseover', () => {
+    layerToggleBtn.style.transform = 'scale(1.05)';
+    layerToggleBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  });
+  layerToggleBtn.addEventListener('mouseout', () => {
+    layerToggleBtn.style.transform = 'scale(1)';
+    layerToggleBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+  });
+
+  const layerPanel = document.createElement('div');
+  layerPanel.id = 'layerPanel';
+  layerPanel.style.cssText = `
+    position: absolute;
+    top: 45px;
+    right: 0;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    padding: 8px;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 100px;
+    z-index: 1000;
+  `;
+
   const layers = [
     { name: 'Sokak', key: 'street' },
     { name: 'Uydu', key: 'satellite' }
@@ -53,56 +93,118 @@ function createFloatingControls() {
   layers.forEach((layer, index) => {
     const btn = document.createElement('button');
     btn.textContent = layer.name;
-    btn.className = index === 0 ? 'layer-btn active' : 'layer-btn';
+    btn.className = index === 0 ? 'layer-opt-btn active' : 'layer-opt-btn';
     btn.dataset.layer = layer.key;
     btn.style.cssText = `
-      padding: 6px 12px;
+      padding: 8px 12px;
       border: 1px solid #e0e0e0;
       background: ${index === 0 ? '#0099ff' : '#f8f9fa'};
-      color: ${index === 0 ? '#ffffff' : '#888'};
+      color: ${index === 0 ? '#ffffff' : '#333'};
       border-radius: 4px;
       cursor: pointer;
       font-weight: 600;
-      font-size: 11px;
+      font-size: 13px;
       transition: all 0.2s;
+      text-align: left;
     `;
-    btn.addEventListener('click', () => changeLayer(layer.key, btn));
-    layerContainer.appendChild(btn);
+    btn.addEventListener('click', () => changeLayer(layer.key, btn, layerToggleBtn, layerPanel));
+    layerPanel.appendChild(btn);
   });
 
-  // Dil butonları
-  const langContainer = document.createElement('div');
-  langContainer.style.cssText = `
+  layerToggleBtn.addEventListener('click', () => {
+    const isOpen = layerPanel.style.display === 'flex';
+    layerPanel.style.display = isOpen ? 'none' : 'flex';
+    langPanel.style.display = 'none'; // Diğer paneli kapat
+  });
+
+  layerDropdownWrapper.appendChild(layerToggleBtn);
+  layerDropdownWrapper.appendChild(layerPanel);
+
+  // ===== DİL DROPDOWN =====
+  const langDropdownWrapper = document.createElement('div');
+  langDropdownWrapper.style.cssText = `
+    position: relative;
     display: flex;
-    gap: 6px;
+    flex-direction: column;
+  `;
+
+  const langToggleBtn = document.createElement('button');
+  langToggleBtn.id = 'langToggleBtn';
+  langToggleBtn.textContent = window.currentLang.toUpperCase();
+  langToggleBtn.style.cssText = `
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: #0099ff;
+    color: #ffffff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 12px;
+    box-shadow: 0 2px 8px rgba(0,153,255,0.3);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+
+  langToggleBtn.addEventListener('mouseover', () => {
+    langToggleBtn.style.transform = 'scale(1.05)';
+    langToggleBtn.style.boxShadow = '0 4px 12px rgba(0,153,255,0.4)';
+  });
+  langToggleBtn.addEventListener('mouseout', () => {
+    langToggleBtn.style.transform = 'scale(1)';
+    langToggleBtn.style.boxShadow = '0 2px 8px rgba(0,153,255,0.3)';
+  });
+
+  const langPanel = document.createElement('div');
+  langPanel.id = 'langPanel';
+  langPanel.style.cssText = `
+    position: absolute;
+    top: 45px;
+    right: 0;
     background: #ffffff;
-    padding: 8px;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    padding: 8px;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 80px;
+    z-index: 1000;
   `;
 
   ['tr', 'en', 'de', 'fr'].forEach(lang => {
     const btn = document.createElement('button');
     btn.textContent = lang.toUpperCase();
-    btn.className = lang === currentLang ? 'lang-btn active' : 'lang-btn';
+    btn.className = lang === window.currentLang ? 'lang-opt-btn active' : 'lang-opt-btn';
     btn.dataset.lang = lang;
     btn.style.cssText = `
-      width: 32px;
-      height: 32px;
+      padding: 8px 12px;
       border: 1px solid #e0e0e0;
-      background: ${lang === currentLang ? '#0099ff' : '#f8f9fa'};
-      color: ${lang === currentLang ? '#ffffff' : '#888'};
+      background: ${lang === window.currentLang ? '#0099ff' : '#f8f9fa'};
+      color: ${lang === window.currentLang ? '#ffffff' : '#333'};
       border-radius: 4px;
       cursor: pointer;
       font-weight: 600;
-      font-size: 11px;
+      font-size: 12px;
       transition: all 0.2s;
+      text-align: center;
     `;
-    btn.addEventListener('click', () => changeMobileLanguage(lang));
-    langContainer.appendChild(btn);
+    btn.addEventListener('click', () => changeMobileLanguage(lang, langToggleBtn, langPanel));
+    langPanel.appendChild(btn);
   });
 
-  // Konum bul butonu
+  langToggleBtn.addEventListener('click', () => {
+    const isOpen = langPanel.style.display === 'flex';
+    langPanel.style.display = isOpen ? 'none' : 'flex';
+    layerPanel.style.display = 'none'; // Diğer paneli kapat
+  });
+
+  langDropdownWrapper.appendChild(langToggleBtn);
+  langDropdownWrapper.appendChild(langPanel);
+
+  // ===== KONUM BUL BUTONU =====
   const locationBtn = document.createElement('button');
   locationBtn.id = 'locationBtn';
   locationBtn.textContent = '📍';
@@ -126,7 +228,6 @@ function createFloatingControls() {
 
   locationBtn.addEventListener('click', () => {
     if (isTracking) {
-      // Tracking aktifse durdur
       stopLocationTracking();
       if (userLocationMarker) map.removeLayer(userLocationMarker);
       userLocationMarker = null;
@@ -134,7 +235,6 @@ function createFloatingControls() {
       locationBtn.textContent = '📍';
       isTracking = false;
     } else {
-      // Tracking kapalıysa başlat
       locationBtn.style.opacity = '1';
       requestUserLocation();
       isTracking = true;
@@ -152,18 +252,27 @@ function createFloatingControls() {
     locationBtn.style.boxShadow = '0 2px 8px rgba(0,153,255,0.3)';
   });
 
-  container.appendChild(layerContainer);
-  container.appendChild(langContainer);
+  // ===== KONTEİNERE EKLE =====
+  container.appendChild(layerDropdownWrapper);
+  container.appendChild(langDropdownWrapper);
   container.appendChild(locationBtn);
   document.body.appendChild(container);
+
+  // Dışarıya tıklanınca panelleri kapat
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#floatingControls')) {
+      layerPanel.style.display = 'none';
+      langPanel.style.display = 'none';
+    }
+  });
 }
 
 // Layer değiştir
-function changeLayer(layerKey, btn) {
+function changeLayer(layerKey, btn, toggleBtn, panel) {
   // Buton stilini güncelle
-  document.querySelectorAll('#layerContainer .layer-btn').forEach(b => {
+  document.querySelectorAll('#layerPanel .layer-opt-btn').forEach(b => {
     b.style.background = '#f8f9fa';
-    b.style.color = '#888';
+    b.style.color = '#333';
   });
   btn.style.background = '#0099ff';
   btn.style.color = '#ffffff';
@@ -179,21 +288,27 @@ function changeLayer(layerKey, btn) {
       }
     });
   }
+
+  // Paneli kapat
+  panel.style.display = 'none';
 }
 
 // Dil değiştir (mobile)
-function changeMobileLanguage(lang) {
+function changeMobileLanguage(lang, toggleBtn, panel) {
   window.currentLang = lang;
 
+  // Toggle butonunu güncelle
+  toggleBtn.textContent = lang.toUpperCase();
+
   // Dil butonlarını güncelle
-  document.querySelectorAll('#floatingControls .lang-btn').forEach(btn => {
+  document.querySelectorAll('#langPanel .lang-opt-btn').forEach(btn => {
     if (btn.dataset.lang === lang) {
       btn.style.background = '#0099ff';
       btn.style.color = '#ffffff';
       btn.classList.add('active');
     } else {
       btn.style.background = '#f8f9fa';
-      btn.style.color = '#888';
+      btn.style.color = '#333';
       btn.classList.remove('active');
     }
   });
@@ -215,6 +330,9 @@ function changeMobileLanguage(lang) {
       document.getElementById('mobileCategory').textContent = `${location.city} • ${categoryName}`;
     }
   }
+
+  // Paneli kapat
+  panel.style.display = 'none';
 }
 
 // ===== GEOLOCATION =====
@@ -529,4 +647,4 @@ window.addEventListener('resize', () => {
   }
 });
 
-console.log('✅ Mobile script yüklendi (geolocation + floating controls + layer control)');
+console.log('✅ Mobile script yüklendi (Layer Dropdown + Dil Dropdown + Konum Bul)');
