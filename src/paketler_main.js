@@ -207,9 +207,9 @@ async function handleDownload(cityId, cityName) {
           // Dosya yolunu oluştur (history-markers proxy üzerinden)
           let mediaUrl;
           if (type === 'image') {
-            mediaUrl = `https://history-markers.onrender.com/api/v1/media/${fileName}`;
+            mediaUrl = `https://history-markers.onrender.com/api/v1/media/images/${fileName}`;
           } else if (type === 'audio') {
-            mediaUrl = `https://history-markers.onrender.com/api/v1/media/${fileName}`;
+            mediaUrl = `https://history-markers.onrender.com/api/v1/media/audio/${fileName}`;
           }
           
           console.log(`📥 İndiriliyor: ${mediaUrl}`);
@@ -217,11 +217,7 @@ async function handleDownload(cityId, cityName) {
           
           if (mediaResponse.ok) {
             const mediaBlob = await mediaResponse.blob();
-            await saveToIndexedDB('mediaCache', {
-              id: fileName,
-              blob: mediaBlob,
-              timestamp: Date.now()
-            });
+            await saveMediaToIndexedDB(fileName, mediaBlob);
             console.log(`✅ Medya kaydedildi: ${fileName}`);
           } else {
             console.warn(`⚠️ Medya ${mediaResponse.status}: ${fileName}`);
