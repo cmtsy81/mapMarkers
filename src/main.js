@@ -4,7 +4,7 @@ import { registerSW } from 'virtual:pwa-register' // <-- 1. BU YENİ SATIRI EN �
 
 // CSS Dosyaları
 import './style.css'
-import './map_style.css'
+//import './map_style.css'
 import './admin_locations_style.css'
 import './admin_style.css'
 
