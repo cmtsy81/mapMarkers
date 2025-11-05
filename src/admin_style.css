@@ -1,129 +1,17 @@
-/* admin_style.css (Tam ve Düzeltilmiş Versiyon) */
-
-body { 
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  margin: 20px; 
-  background-color: #f9f9f9;
-  color: #333;
-}
-h1, h2 { 
-  border-bottom: 2px solid #eee; 
-  padding-bottom: 5px; 
-  color: #111;
-}
-input[type="text"] { 
-  margin-bottom: 12px; 
-  padding: 10px; 
-  width: 400px; 
-  border: 1px solid #ccc; 
-  border-radius: 4px; 
-  font-size: 14px;
-}
-button { 
-  padding: 10px 15px; 
-  cursor: pointer; 
-  border-radius: 4px; 
-  border: none; 
-  font-weight: bold;
-  font-size: 14px;
-  transition: background-color 0.2s;
-}
-#submitBtn { 
-  background: #28a745; 
-  color: white; 
-}
-#submitBtn:hover { background: #218838; }
-#cancelBtn { 
-  background: #6c757d; 
-  color: white; 
-  margin-left: 10px; 
-}
-#cancelBtn:hover { background: #5a6268; }
-
-/* --- ORTAK LİSTE STİLLERİ --- */
-/* Hem Kategori hem de Etiket listeleri için */
-#categoryList, #tagList { 
-  list-style: none; 
-  padding: 0; 
-}
-#categoryList li, #tagList li { 
-  background: #fff;
-  border: 1px solid #ddd; 
-  padding: 15px 20px; 
-  margin-bottom: 10px; 
-  border-radius: 5px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  display: flex;
-  justify-content: space-between;
-  align-items: center; 
-}
-
-/* --- ORTAK BİLGİ ALANI STİLLERİ --- */
-.category-info, .tag-info { 
-  flex-grow: 1; /* Bilgi alanı genişlesin */
-}
-.category-info strong, .tag-info strong {
-  font-size: 1.3em; /* "key" adını büyüt */
-  color: #0056b3; /* "key" adını vurgula */
-  display: block;
-  margin-bottom: 12px;
-}
-
-.translations-container {
-  display: flex; /* Çevirileri yatay diz */
-  flex-wrap: wrap; /* Küçük ekranda alt satıra kaysın */
-  gap: 8px; /* Etiketler arası boşluk */
-}
-.translation-tag {
-  background-color: #f0f0f0;
-  border: 1px solid #ddd;
-  padding: 4px 10px;
-  border-radius: 12px; /* Etiketleri "pill" yap */
-  font-size: 0.9em;
-}
-.translation-tag .lang-key {
-  font-weight: bold;
-  color: #555;
-  margin-right: 5px;
-  text-transform: uppercase;
-}
-
-/* --- ORTAK EYLEM BUTONLARI --- */
-.category-actions, .tag-actions { 
-  display: flex; /* Butonları yanyana tut */
-  gap: 8px;
-  flex-shrink: 0; /* Butonların küçülmesini engelle */
-  margin-left: 20px;
-}
-.delete-btn { background: #dc3545; color: white; }
-.delete-btn:hover { background: #c82333; }
-.edit-btn { background: #007bff; color: white; }
-.edit-btn:hover { background: #0069d9; }
-
-/* ===== RESET & BASICS ===== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
+/* Admin Panel Layout */
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #f5f7fa;
-  color: #2c3e50;
   display: flex;
   height: 100vh;
   overflow: hidden;
 }
 
-/* ===== SIDEBAR ===== */
 .sidebar {
   width: 320px;
   background: #ffffff;
   border-right: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
-  box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
 }
 
 .sidebar-header {
@@ -147,12 +35,7 @@ body {
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
-  transition: background 0.2s;
   margin-bottom: 12px;
-}
-
-.sidebar-header button:hover {
-  background: #0080cc;
 }
 
 .filter-group {
@@ -175,8 +58,6 @@ body {
   background: #f8f9fa;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
-  color: #2c3e50;
-  font-size: 13px;
 }
 
 .sidebar-list {
@@ -216,7 +97,7 @@ body {
   font-weight: 600;
 }
 
-/* ===== MAIN CONTENT ===== */
+/* Main Content */
 .main-content {
   flex: 1;
   display: flex;
@@ -244,7 +125,7 @@ body {
   padding: 30px;
 }
 
-/* ===== FORMS ===== */
+/* Form Container */
 .form-container {
   display: none;
   max-width: 1200px;
@@ -321,29 +202,6 @@ body {
   margin-bottom: 6px;
 }
 
-.form-group input[type="text"],
-.form-group textarea,
-.form-group select {
-  width: 100%;
-  padding: 10px 12px;
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #2c3e50;
-  font-family: inherit;
-  transition: all 0.2s;
-}
-
-.form-group input[type="text"]:focus,
-.form-group textarea:focus,
-.form-group select:focus {
-  outline: none;
-  background: #ffffff;
-  border-color: #0099ff;
-  box-shadow: 0 0 0 3px rgba(0,153,255,0.1);
-}
-
 .form-group textarea {
   resize: vertical;
   min-height: 300px;
@@ -361,7 +219,7 @@ body {
   gap: 24px;
 }
 
-/* ===== MAP ===== */
+/* Map Container */
 #editMap {
   height: 700px;
   border-radius: 6px;
@@ -391,12 +249,6 @@ body {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-
-.map-search-container button:hover {
-  background: #0080cc;
 }
 
 .search-results-dropdown {
@@ -406,7 +258,7 @@ body {
   background: #ffffff;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 10001;
   max-height: 300px;
   overflow-y: auto;
@@ -431,11 +283,7 @@ body {
   background: #f5f5f5;
 }
 
-.search-result-item:last-child {
-  border-bottom: none;
-}
-
-/* ===== TAGS ===== */
+/* Tags */
 .tags-container {
   background: #f8f9fa;
   border: 1px solid #e0e0e0;
@@ -467,7 +315,7 @@ body {
   font-size: 13px;
 }
 
-/* ===== BUTTONS ===== */
+/* Buttons */
 .buttons {
   display: flex;
   gap: 12px;
@@ -521,63 +369,13 @@ button[type="reset"]:hover {
   transform: translateY(-2px);
 }
 
-#deleteBtn:active {
-  transform: translateY(0);
-}
-
 .placeholder {
   text-align: center;
   padding: 40px 20px;
   color: #999;
 }
 
-/* ===== NOTIFICATIONS ===== */
-.toast {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  padding: 16px 24px;
-  background: #2ecc71;
-  color: white;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 14px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  animation: slideIn 0.3s ease-out, slideOut 0.3s ease-out 2.7s;
-  z-index: 9999;
-}
-
-.toast.error {
-  background: #e74c3c;
-}
-
-.toast.info {
-  background: #3498db;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(400px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideOut {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(400px);
-    opacity: 0;
-  }
-}
-
-/* ===== MODAL ===== */
+/* Delete Modal */
 .delete-modal-overlay {
   display: none;
   position: fixed;
@@ -633,7 +431,6 @@ button[type="reset"]:hover {
   font-size: 14px;
   color: #666;
   margin-bottom: 8px;
-  line-height: 1.5;
 }
 
 .delete-modal-location {
@@ -658,7 +455,6 @@ button[type="reset"]:hover {
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
   font-size: 14px;
 }
 
@@ -683,7 +479,7 @@ button[type="reset"]:hover {
   transform: translateY(-2px);
 }
 
-/* ===== RESPONSIVE ===== */
+/* Responsive */
 @media (max-width: 1024px) {
   .two-col {
     grid-template-columns: 1fr;
