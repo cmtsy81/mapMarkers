@@ -1,4 +1,4 @@
-// src/paketler_main.js - TAMAMLANMIŞ
+// src/paketler_main.js - TAMAMLANMIŞ VERSION
 
 const API_BASE = "https://history-markers.onrender.com/api/v1";
 
@@ -58,17 +58,6 @@ async function getAllFromIndexedDB(storeName) {
     const tx = db.transaction([storeName], 'readonly');
     const store = tx.objectStore(storeName);
     const request = store.getAll();
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function getAllKeysFromIndexedDB(storeName) {
-  if (!db) await initIndexedDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction([storeName], 'readonly');
-    const store = tx.objectStore(storeName);
-    const request = store.getAllKeys();
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
@@ -256,32 +245,28 @@ async function handleDelete(cityId, cityName) {
       await deleteFromIndexedDB('markerDetails', marker.id);
     }
 
-    // 2. Medya dosyalarını sil (o şehre ait olanları)
-    if (allMarkers.length > 0) {
-      const cityMediaNames = [];
-      
-      for (const marker of cityMarkers) {
-        // Resim dosya adı ekle
-        if (marker.data.thumbnailUrl) {
-          cityMediaNames.push(marker.data.thumbnailUrl);
-        }
-        
-        // MP3 dosya adlarını ekle
-        Object.values(marker.data.translations || {}).forEach(trans => {
-          if (trans.audioPath) {
-            cityMediaNames.push(trans.audioPath);
-          }
-        });
+    // 2. Medya dosyalarını sil
+    const cityMediaNames = [];
+    
+    for (const marker of cityMarkers) {
+      if (marker.data.thumbnailUrl) {
+        cityMediaNames.push(marker.data.thumbnailUrl);
       }
-
-      console.log(`📸 ${cityMediaNames.length} medya dosyası siliniyor...`);
-      for (const mediaName of cityMediaNames) {
-        try {
-          await deleteFromIndexedDB('mediaCache', mediaName);
-          console.log(`✅ Medya silindi: ${mediaName}`);
-        } catch (err) {
-          console.warn(`⚠️ Medya silme hatası: ${mediaName}`, err);
+      
+      Object.values(marker.data.translations || {}).forEach(trans => {
+        if (trans.audioPath) {
+          cityMediaNames.push(trans.audioPath);
         }
+      });
+    }
+
+    console.log(`📸 ${cityMediaNames.length} medya dosyası siliniyor...`);
+    for (const mediaName of cityMediaNames) {
+      try {
+        await deleteFromIndexedDB('mediaCache', mediaName);
+        console.log(`✅ Medya silindi: ${mediaName}`);
+      } catch (err) {
+        console.warn(`⚠️ Medya silme hatası: ${mediaName}`, err);
       }
     }
 
@@ -307,11 +292,7 @@ async function handleDelete(cityId, cityName) {
 async function handleUpdate(cityId, cityName) {
   console.log(`🔄 ${cityName} güncelleniyor (Sil + İndir)...`);
   await handleDelete(cityId, cityName);
-  
-  // Delete içinde sayfayı yenile, ondan sonra indirme başlayacak
-  // İlerde "delta update" mantığı eklenebilir
 }
-
 
 // ===== BAŞLANGIÇ =====
 window.addEventListener('DOMContentLoaded', async () => {
