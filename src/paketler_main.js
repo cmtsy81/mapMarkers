@@ -1,122 +1,144 @@
-// src/paketler_main.js
+// src/paketler_main.js - TAMAMLANMIŞ
 
-// --- 1. AYARLAR VE API ---
-// "Mutfak" API'mizin adresini tanımlıyoruz
 const API_BASE = "https://history-markers.onrender.com/api/v1";
 
-// --- 2. INDEXEDDB YARDIMCI KODLARI ---
-// (Bu kodlar, 'map_script.js' içindekilerin aynısıdır.
-// İlerde bunları 'src/db.js' gibi tek bir dosyaya taşıyabiliriz.)
+let db;
 
-let db; // Global DB bağlantısı
-
+// ===== INDEXEDDB BAŞLATMA =====
 async function initIndexedDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open('travelAppCache', 1);
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
       db = request.result;
-      console.log('✅ IndexedDB (Kiler) başarıyla açıldı.');
+      console.log('✅ IndexedDB açıldı');
       resolve();
     };
-    // (onupgradeneeded kısmı 'map_script.js' tarafından zaten yapıldığı için
-    // burada tekrar eklemeye gerek yok, varsayılan olarak çalışır.)
+    request.onupgradeneeded = (event) => {
+      const database = event.target.result;
+      if (!database.objectStoreNames.contains('markerDetails')) {
+        database.createObjectStore('markerDetails', { keyPath: 'id' });
+      }
+      if (!database.objectStoreNames.contains('mediaCache')) {
+        database.createObjectStore('mediaCache');
+      }
+      if (!database.objectStoreNames.contains('geoIndex')) {
+        database.createObjectStore('geoIndex', { keyPath: 'cacheKey' });
+      }
+    };
   });
 }
 
+// ===== INDEXEDDB FONKSIYONLARI =====
 async function saveToIndexedDB(storeName, data) {
-  if (!db) await initIndexedDB(); // Bağlantı yoksa aç
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction([storeName], 'readwrite');
-    const store = tx.objectStore(storeName);
-    const request = store.put(data);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-// (Dosyaları IndexedDB'ye BLOB olarak kaydetme fonksiyonu - EN KRİTİK YER)
-async function saveMediaBlobToDB(storeName, key, blob) {
   if (!db) await initIndexedDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction([storeName], 'readwrite');
     const store = tx.objectStore(storeName);
-    const request = store.put(blob, key); // (key: dosya adı, value: dosya içeriği)
+    const request = store.put(data);
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
   });
 }
 
+async function deleteFromIndexedDB(storeName, key) {
+  if (!db) await initIndexedDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([storeName], 'readwrite');
+    const store = tx.objectStore(storeName);
+    const request = store.delete(key);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
 
-
-/**
- * IndexedDB'den bir tablodaki TÜM kayıtları çeker.
- */
 async function getAllFromIndexedDB(storeName) {
   if (!db) await initIndexedDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction([storeName], 'readonly');
     const store = tx.objectStore(storeName);
-    const request = store.getAll(); // <-- Tüm kayıtları al
+    const request = store.getAll();
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
 }
 
-// --- 3. PAKET YÖNETİCİSİ MANTIĞI ---
+async function getAllKeysFromIndexedDB(storeName) {
+  if (!db) await initIndexedDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([storeName], 'readonly');
+    const store = tx.objectStore(storeName);
+    const request = store.getAllKeys();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
 
+// ===== BILDIRIM FONKSİYONLARI =====
+function showNotification(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
 
-// Sayfa yüklendiğinde bu fonksiyon çalışır
+function showProgressNotification(message) {
+  let toast = document.getElementById('progressToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'progressToast';
+    toast.className = 'toast info';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.style.display = 'block';
+}
+
+function hideProgressNotification() {
+  const toast = document.getElementById('progressToast');
+  if (toast) toast.style.display = 'none';
+}
+
+// ===== PAKET YÜKLEME =====
 async function loadPackages() {
   const container = document.getElementById('paket-listesi');
   
   try {
-    // 1. Adım: "Mutfak"tan (/packages/summary) paket listesini al
+    showProgressNotification('Paketler yükleniyor...');
+    
     const response = await fetch(`${API_BASE}/packages/summary`);
     if (!response.ok) throw new Error('Paket listesi çekilemedi');
     const packages = await response.json();
     
-    // --- YENİ ADIM: "KİLER" (IndexedDB) KONTROLÜ ---
-    // 'markerDetails' (Ağır Veri) kasamızdaki tüm mevcut kayıtları çek
-    // (Dikkat: 'markerDetails' tablosunun 'map_script.js' tarafından oluşturulduğunu varsayıyoruz)
     const downloadedDetails = await getAllFromIndexedDB('markerDetails');
-    
-    // Bu kayıtlardan, hangi şehirlerin bizde olduğunu gösteren bir Set (liste) oluştur
-    // (Aynı şehirden 100 kayıt bile olsa, Set sayesinde listede 1 kez yer alır)
     const downloadedCities = new Set(downloadedDetails.map(item => item.data.city));
-    console.log('İndirilmiş (Cache\'lenmiş) Şehirler:', downloadedCities);
-    // --- YENİ ADIM BİTTİ ---
-
-    container.innerHTML = ''; // Yükleniyor spinner'ını temizle
-
-    // 2. Adım: Her paket için bir "kutu" oluştur
-    // (Artık 'downloadedCities' listesini de gönderiyoruz)
+    
+    console.log('İndirilen Şehirler:', Array.from(downloadedCities));
+    
+    container.innerHTML = '';
     packages.forEach(pkg => renderPackageBox(pkg, downloadedCities));
-
+    
+    hideProgressNotification();
   } catch (err) {
     console.error(err);
-    container.innerHTML = '<div class="empty-state">Paketler yüklenirken bir hata oluştu.</div>';
+    container.innerHTML = '<div class="empty-state">Paketler yüklenirken hata oluştu.</div>';
+    hideProgressNotification();
   }
 }
 
-
-// Her bir paket (şehir) için HTML kutusunu çizer
-function renderPackageBox(pkg, downloadedCities) { // <-- 1. YENİ ARGÜMANI (downloadedCities) AL
+// ===== PAKET KUTUSU RENDER =====
+function renderPackageBox(pkg, downloadedCities) {
   const container = document.getElementById('paket-listesi');
   const box = document.createElement('div');
   box.className = 'paket-kutusu';
   
-  // --- YENİ ADIM: "AKILLI" BUTON MANTIĞI ---
-  // Bu paket (şehir), 'downloadedCities' listesinde var mı?
   const isDownloaded = downloadedCities.has(pkg.id);
   
   const indirBtnStyle = isDownloaded ? 'style="display:none;"' : '';
   const silBtnStyle = isDownloaded ? '' : 'style="display:none;"';
-  // (Güncelleme mantığını şimdilik 'Sil' ile aynı tutuyoruz)
   const guncelleBtnStyle = isDownloaded ? '' : 'style="display:none;"';
-  // --- YENİ ADIM BİTTİ ---
 
-  // Kutu içeriğini oluştur (Yeni buton stilleriyle)
   box.innerHTML = `
     <h2>${pkg.name}</h2>
     <div class="paket-info">
@@ -125,71 +147,178 @@ function renderPackageBox(pkg, downloadedCities) { // <-- 1. YENİ ARGÜMANI (do
       <span>~${pkg.sizeMB} MB</span> disk alanı
     </div>
     <div class="paket-actions">
-      <button class="btn-indir" data-city-id="${pkg.id}" ${indirBtnStyle}>İndir</button>
-      <button class="btn-sil" data-city-id="${pkg.id}" ${silBtnStyle}>Sil</button>
-      <button class="btn-guncelle" data-city-id="${pkg.id}" ${guncelleBtnStyle}>Güncelle</button>
+      <button class="btn-indir" data-city-id="${pkg.id}" ${indirBtnStyle}>⬇️ İndir</button>
+      <button class="btn-sil" data-city-id="${pkg.id}" ${silBtnStyle}>🗑️ Sil</button>
+      <button class="btn-guncelle" data-city-id="${pkg.id}" ${guncelleBtnStyle}>🔄 Güncelle</button>
     </div>
   `;
 
-  // Butonlara eylem ekle
-  box.querySelector('.btn-indir').addEventListener('click', () => handleDownload(pkg.id));
-  box.querySelector('.btn-sil').addEventListener('click', () => handleDelete(pkg.id));
-  box.querySelector('.btn-guncelle').addEventListener('click', () => handleUpdate(pkg.id));
+  box.querySelector('.btn-indir').addEventListener('click', () => handleDownload(pkg.id, pkg.name));
+  box.querySelector('.btn-sil').addEventListener('click', () => handleDelete(pkg.id, pkg.name));
+  box.querySelector('.btn-guncelle').addEventListener('click', () => handleUpdate(pkg.id, pkg.name));
 
   container.appendChild(box);
+}
+
+// ===== İNDİR FONKSİYONU =====
+async function handleDownload(cityId, cityName) {
+  try {
+    const downloadBtn = document.querySelector(`[data-city-id="${cityId}"].btn-indir`);
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = '⏳ İndiriliyor...';
+
+    showProgressNotification(`${cityName} indiriliyor... (0%)`);
+
+    // 1. Paket detaylarını API'den çek
+    console.log(`📦 ${cityId} paketi çekiliyor...`);
+    const response = await fetch(`${API_BASE}/packages/details/${cityId}`);
+    if (!response.ok) throw new Error('Paket detayları çekilemedi');
+    const packageData = await response.json();
+
+    const totalItems = packageData.details.length;
+    let processedItems = 0;
+
+    // 2. Marker detaylarını IndexedDB'ye kaydet
+    console.log(`💾 ${totalItems} marker kaydediliyor...`);
+    for (const marker of packageData.details) {
+      await saveToIndexedDB('markerDetails', {
+        id: marker.id,
+        data: marker,
+        timestamp: Date.now()
+      });
+      processedItems++;
+      const progress = Math.round((processedItems / totalItems) * 100);
+      showProgressNotification(`${cityName} indiriliyor... (${progress}%)`);
+    }
+
+    // 3. Medya dosyalarını indir ve BLOB olarak kaydet
+    if (packageData.media && packageData.media.length > 0) {
+      console.log(`📸 ${packageData.media.length} medya dosyası indiriliyor...`);
+      
+      for (const media of packageData.media) {
+        try {
+          const mediaResponse = await fetch(media.url);
+          if (mediaResponse.ok) {
+            const mediaBlob = await mediaResponse.blob();
+            await saveToIndexedDB('mediaCache', {
+              id: media.fileName,
+              blob: mediaBlob,
+              timestamp: Date.now()
+            });
+            console.log(`✅ Medya kaydedildi: ${media.fileName}`);
+          }
+        } catch (mediaErr) {
+          console.warn(`⚠️ Medya indirme hatası: ${media.fileName}`, mediaErr);
+        }
+        processedItems++;
+        const progress = Math.round((processedItems / totalItems) * 100);
+        showProgressNotification(`${cityName} indiriliyor... (${progress}%)`);
+      }
+    }
+
+    showProgressNotification(`${cityName} başarıyla indirildi!`);
+    showNotification(`✅ ${cityName} cache'e kaydedildi!`, 'success');
+
+    // Sayfayı yenile
+    setTimeout(() => {
+      location.reload();
+    }, 1500);
+
+  } catch (err) {
+    console.error('İndirme hatası:', err);
+    showNotification(`❌ İndirme hatası: ${err.message}`, 'error');
+    const downloadBtn = document.querySelector(`[data-city-id="${cityId}"].btn-indir`);
+    downloadBtn.disabled = false;
+    downloadBtn.textContent = '⬇️ İndir';
+    hideProgressNotification();
+  }
+}
+
+// ===== SİL FONKSİYONU =====
+async function handleDelete(cityId, cityName) {
+  if (!confirm(`${cityName} paketini tamamen silmek istediğinize emin misiniz?`)) {
+    return;
+  }
+
+  try {
+    const deleteBtn = document.querySelector(`[data-city-id="${cityId}"].btn-sil`);
+    deleteBtn.disabled = true;
+    deleteBtn.textContent = '⏳ Siliniyor...';
+
+    showProgressNotification(`${cityName} siliniyor...`);
+
+    // 1. Marker detaylarını sil
+    console.log(`🗑️ ${cityId} markerları siliniyor...`);
+    const allMarkers = await getAllFromIndexedDB('markerDetails');
+    const cityMarkers = allMarkers.filter(m => m.data.city === cityId);
+
+    for (const marker of cityMarkers) {
+      await deleteFromIndexedDB('markerDetails', marker.id);
+    }
+
+    // 2. Medya dosyalarını sil (o şehre ait olanları)
+    if (allMarkers.length > 0) {
+      const cityMediaNames = [];
+      
+      for (const marker of cityMarkers) {
+        // Resim dosya adı ekle
+        if (marker.data.thumbnailUrl) {
+          cityMediaNames.push(marker.data.thumbnailUrl);
+        }
+        
+        // MP3 dosya adlarını ekle
+        Object.values(marker.data.translations || {}).forEach(trans => {
+          if (trans.audioPath) {
+            cityMediaNames.push(trans.audioPath);
+          }
+        });
+      }
+
+      console.log(`📸 ${cityMediaNames.length} medya dosyası siliniyor...`);
+      for (const mediaName of cityMediaNames) {
+        try {
+          await deleteFromIndexedDB('mediaCache', mediaName);
+          console.log(`✅ Medya silindi: ${mediaName}`);
+        } catch (err) {
+          console.warn(`⚠️ Medya silme hatası: ${mediaName}`, err);
+        }
+      }
+    }
+
+    showNotification(`✅ ${cityName} cache'den silindi!`, 'success');
+    hideProgressNotification();
+
+    // Sayfayı yenile
+    setTimeout(() => {
+      location.reload();
+    }, 1500);
+
+  } catch (err) {
+    console.error('Silme hatası:', err);
+    showNotification(`❌ Silme hatası: ${err.message}`, 'error');
+    const deleteBtn = document.querySelector(`[data-city-id="${cityId}"].btn-sil`);
+    deleteBtn.disabled = false;
+    deleteBtn.textContent = '🗑️ Sil';
+    hideProgressNotification();
+  }
+}
+
+// ===== GÜNCELLE FONKSİYONU =====
+async function handleUpdate(cityId, cityName) {
+  console.log(`🔄 ${cityName} güncelleniyor (Sil + İndir)...`);
+  await handleDelete(cityId, cityName);
   
-  // (O 'Buraya' yorum satırına artık gerek kalmadı, çünkü bu mantığı ekledik)
+  // Delete içinde sayfayı yenile, ondan sonra indirme başlayacak
+  // İlerde "delta update" mantığı eklenebilir
 }
 
-
-// --- 4. BUTON EYLEMLERİ (TASLAK) ---
-
-// "İndir" butonuna basıldığında
-async function handleDownload(cityId) {
-  console.log(`İndirme başlatılıyor: ${cityId}`);
-  alert(`${cityId} için indirme başladı. (Bu kısım henüz kodlanmadı)`);
-
-  // Burası "tane tane" gitmemiz gereken en karmaşık yer:
-  // 1. "Mutfak"tan o 100MB'lık paketi çek (`/packages/details/:cityId`)
-  // const response = await fetch(`${API_BASE}/packages/details/${cityId}`);
-  // const packageData = await response.json();
-
-  // 2. JSON verisini ('details') IndexedDB'deki 'markerDetails' tablosuna kaydet
-  // for (const marker of packageData.details) {
-  //   await saveToIndexedDB('markerDetails', { id: marker.id, data: marker, ... });
-  // }
-
-  // 3. Medya verisini ('media') tek tek çekip BLOB olarak kaydet
-  //    (Bu, 'mediaCache' adında yeni bir IndexedDB tablosu gerektirir)
-  // for (const media of packageData.media) {
-  //   const mediaResponse = await fetch(media.url);
-  //   const mediaBlob = await mediaResponse.blob();
-  //   await saveMediaBlobToDB('mediaCache', media.fileName, mediaBlob);
-  // }
-  
-  console.log(`İndirme bitti: ${cityId}`);
-}
-
-// "Sil" butonuna basıldığında
-async function handleDelete(cityId) {
-  console.log(`Silme başlatılıyor: ${cityId}`);
-  alert(`${cityId} için silme işlemi. (Bu kısım henüz kodlanmadı)`);
-  // Burası, 'markerDetails' ve 'mediaCache' tablolarından o şehre ait
-  // tüm verileri silen bir döngü gerektirecek.
-}
-
-// "Güncelle" butonuna basıldığında (Senin "delta" fikrin)
-async function handleUpdate(cityId) {
-  // Şimdilik, Güncelle = Sil + İndir
-  console.log(`Güncelleme (Sil + İndir) başlatılıyor: ${cityId}`);
-  await handleDelete(cityId);
-  await handleDownload(cityId);
-}
-
-
-// --- 5. BAŞLANGIÇ ---
-// Sayfa HTML'i yüklendiğinde başla
+// ===== BAŞLANGIÇ =====
 window.addEventListener('DOMContentLoaded', async () => {
-  await initIndexedDB(); // Önce "Kiler"i (IndexedDB) aç
-  await loadPackages();  // Sonra "Mutfak"tan (API) paketleri çek
+  try {
+    await initIndexedDB();
+    await loadPackages();
+  } catch (err) {
+    console.error('Başlama hatası:', err);
+    showNotification('Başlama hatası', 'error');
+  }
 });
