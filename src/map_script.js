@@ -400,57 +400,85 @@ async function checkCacheForAllLocations() {
   console.log('✅ Tüm lokasyonların cache durumu kontrol edildi');
 }
 
+
+
+// DOSYA: map_script.js
+// ESKİ loadGeoIndex FONKSİYONUNUN TAMAMINI BUNUNLA DEĞİŞTİR:
+
 async function loadGeoIndex() {
   const now = Date.now();
 
-  // Memory cache ve 5 dakika kontrolü
-  if (window.geoIndexData.length > 0 && (now - window.lastIndexFetch) < INDEX_CACHE_TIME) { // DÜZELTİLDİ
-    console.log('✅ Geo-Index memory cache kullanılıyor.');
-    await checkCacheForAllLocations();  // ← BURASI YENİ
-    await updateMapMarkers();
-    updateLocationList();
-    return;
+  // (RAM'deki 5 dakikalık cache'i artık kullanmıyoruz,
+  // çünkü 'isOnline()' kontrolü daha güvenilir)
+  
+  // --- 1. ADIM: ONLİNE (ÇEVRİMİÇİ) YOLU DENE ---
+  if (isOnline()) {
+    try {
+      console.log("📥 'Hafif Veri' çekiliyor (API)...");
+      const response = await fetch(`${API_BASE}/locations/index`);
+      window.geoIndexData = await response.json(); 
+      window.lastIndexFetch = now; // (Bu değişkeni hâlâ güncelleyelim, belki lazım olur)
+
+      // Taze veriyi 'geoIndex' cache'ine (Kiler'e) de kaydet (Offline'da kullanmak için)
+      await saveToIndexedDB('geoIndex', {
+        cacheKey: 'currentIndex',
+        data: window.geoIndexData,
+        timestamp: now // Bu 'timestamp'i şu an kullanmıyoruz ama kalsın
+      });
+      
+      console.log(`✅ ${window.geoIndexData.length} marker API'den çekildi (Online)`);
+      
+      // Haritayı bu taze veriyle doldur
+      await checkCacheForAllLocations(); // Bu, pinlerin 'isCached' durumunu kontrol ediyordu
+      await updateMapMarkers();
+      updateLocationList();
+      return; // BAŞARIYLA BİTTİ, ÇIK.
+
+    } catch (err) {
+      // İnternet var GİBİ görünüp (isOnline()=true) API (Mutfak) çöktüyse,
+      // bu hatayı logla ve OFFLINE YOLUNA DÜŞ.
+      console.error("API (Mutfak) hatası (çevrimiçi olmanıza rağmen):", err);
+    }
   }
 
-  console.log("📥 Yeni Geo-Index çekiliyor...");
-
+  // --- 2. ADIM: OFFLINE (ÇEVRİMDIŞI) YOLU DENE ---
+  // (Buraya geldiysek ya internet yoktur ya da API çökmüştür)
+  
+  console.warn("İNTERNET YOK veya API HATASI. 'Hafif Veri' IndexedDB'den (Kiler) deneniyor...");
+  
   try {
-    const response = await fetch(`${API_BASE}/locations/index`);
-    window.geoIndexData = await response.json(); // DÜZELTİLDİ
-    window.lastIndexFetch = now; // DÜZELTİLDİ
-
-    // IndexedDB'ye de kaydet (1 gün geçerliliği ile)
-    await saveToIndexedDB('geoIndex', {
-      cacheKey: 'currentIndex',
-      data: window.geoIndexData, // DÜZELTİLDİ
-      timestamp: Date.now()
-    });
-
-    console.log(`✅ ${window.geoIndexData.length} marker çekildi`); // DÜZELTİLDİ
-    await checkCacheForAllLocations();  // ← BURASI YENİ
-    await updateMapMarkers();
-    updateLocationList();
-  } catch (err) {
-    console.error('Geo-Index çekilemedi:', err);
-
-    // Offline fallback: IndexedDB'den eski indexi al
-    try {
-      const cached = await getFromIndexedDB('geoIndex', 'currentIndex');
-      if (cached) {
-        window.geoIndexData = cached.data; // DÜZELTİLDİ
-        showNotification('⚠️ Eski veriler gösteriliyor (çevrimdışı)', 'warning');
-        await checkCacheForAllLocations();  // ← BURASI YENİ
-        await updateMapMarkers();
-        updateLocationList();
-        return;
+    // Kiler'deki 'geoIndex' yedeğini çek
+    const cached = await getFromIndexedDB('geoIndex', 'currentIndex');
+    
+    if (cached && cached.data && cached.data.length > 0) {
+      window.geoIndexData = cached.data; // Kiler'deki "hafiif" veriyi RAM'e yükle
+      
+      console.log(`✅ ${window.geoIndexData.length} marker IndexedDB cache'den (Offline) yüklendi`);
+      if (typeof window.showNotification === 'function') {
+           window.showNotification('📡 Çevrimdışı mod. Harita cache\'den yüklendi.', 'warning');
       }
-    } catch (dbErr) {
-      console.error('IndexedDB fallback hatası:', dbErr);
+      
+      // Haritayı bu cache'lenmiş veriyle doldur
+      await checkCacheForAllLocations();
+      await updateMapMarkers();
+      updateLocationList();
+    } else {
+      // Hem internet yok, hem de Kiler (cache) bomboşsa
+      console.error("Çevrimdışı ve 'geoIndex' cache'i de boş. Harita yüklenemiyor.");
+      document.getElementById('locationList').innerHTML = '<div class="empty-state">Hata: İnternet bağlantısı yok ve harita verisi bulunamadı.</div>';
     }
-
-    document.getElementById('locationList').innerHTML = '<div class="empty-state">Hata: Konum verileri yüklenemedi</div>';
+  } catch (dbErr) {
+    console.error("IndexedDB 'geoIndex' okuma hatası:", dbErr);
   }
 }
+
+
+
+
+
+
+
+
 
 window.loadCategories = async function() {
     try {
