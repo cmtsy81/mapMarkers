@@ -207,9 +207,9 @@ async function handleDownload(cityId, cityName) {
           // Dosya yolunu oluştur (history-markers proxy üzerinden)
           let mediaUrl;
           if (type === 'image') {
-            mediaUrl = `https://history-markers.onrender.com/api/v1/media/images/${fileName}`;
+            mediaUrl = `https://history-markers.onrender.com/api/v1/media/${fileName}`;
           } else if (type === 'audio') {
-            mediaUrl = `https://history-markers.onrender.com/api/v1/media/audio/${fileName}`;
+            mediaUrl = `https://history-markers.onrender.com/api/v1/media/${fileName}`;
           }
           
           console.log(`📥 İndiriliyor: ${mediaUrl}`);
