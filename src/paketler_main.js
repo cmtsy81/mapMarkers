@@ -312,6 +312,7 @@ async function handleUpdate(cityId, cityName) {
   // İlerde "delta update" mantığı eklenebilir
 }
 
+
 // ===== BAŞLANGIÇ =====
 window.addEventListener('DOMContentLoaded', async () => {
   try {
