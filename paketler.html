@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Çevrimdışı Paket Yöneticisi</title>
+  
+  <link rel="stylesheet" href="/src/style.css"> 
+  <link rel="stylesheet" href="/src/paketler_style.css">
+</head>
+<body>
+
+  <header class="paket-header">
+    <h1>Çevrimdışı Paket Yöneticisi</h1>
+    <p>Şehir verilerini indirerek internet olmadan haritada gezinin.</p>
+    <a href="/" class="back-to-map-btn">← Haritaya Dön</a>
+  </header>
+
+  <main id="paket-listesi" class="paket-container">
+    <div class="loading">
+      <div class="spinner"></div>
+      <span>Paketler yükleniyor...</span>
+    </div>
+  </main>
+
+  <script type="module" src="/src/paketler_main.js"></script>
+</body>
+</html>
