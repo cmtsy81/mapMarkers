@@ -1,19 +1,7 @@
-/*
- * File: map_css.css
- * Açıklama: Harita ve kenar çubuğu (sidebar) bileşenlerinin tüm stil tanımları.
- */
-
-/* Temel Sıfırlama ve Font */
-html, body {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
+/* Harita Layout */
 body {
   display: flex;
+  overflow: hidden;
 }
 
 .main {
@@ -28,31 +16,14 @@ body {
   width: 100%;
 }
 
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-html, body {
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #ffffff;
-  color: #2c3e50;
-}
-body {
-  display: flex;
-  overflow: hidden;
-}
-
-/* Kenar Çubuğu (Sidebar) */
+/* Sidebar */
 .sidebar {
   width: 300px;
   background: #ffffff;
   border-right: 1px solid #e8e8e8;
   display: flex;
   flex-direction: column;
-  box-shadow: 2px 0 8px rgba(0,0,0,0.06);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
   z-index: 100;
   flex-shrink: 0;
   height: 100%;
@@ -78,16 +49,11 @@ body {
   font-weight: 700;
 }
 
-/* Dil Seçici */
+/* Language Selector */
 .lang-selector {
   display: flex;
   gap: 6px;
   z-index: 50;
-  background: transparent;
-  padding: 0;
-  border-radius: 0;
-  backdrop-filter: none;
-  margin: 0;
 }
 
 .lang-btn {
@@ -116,7 +82,7 @@ body {
   color: #0099ff;
 }
 
-/* Filtreler */
+/* Filters */
 .filters {
   display: flex;
   flex-direction: column;
@@ -137,28 +103,7 @@ body {
   font-weight: 600;
 }
 
-input[type="text"],
-select {
-  padding: 8px 10px;
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  color: #2c3e50;
-  font-size: 12px;
-  transition: all 0.2s;
-  width: 100%;
-  max-width: 280px;
-}
-
-input[type="text"]:focus,
-select:focus {
-  outline: none;
-  background: #ffffff;
-  border-color: #0099ff;
-  box-shadow: 0 0 0 3px rgba(0,153,255,0.1);
-}
-
-/* Lokasyon Listesi */
+/* Sidebar Content */
 .sidebar-content {
   flex: 1;
   overflow-y: auto;
@@ -167,10 +112,6 @@ select:focus {
 
 .sidebar-content::-webkit-scrollbar {
   width: 6px;
-}
-
-.sidebar-content::-webkit-scrollbar-track {
-  background: transparent;
 }
 
 .sidebar-content::-webkit-scrollbar-thumb {
@@ -219,45 +160,7 @@ select:focus {
   font-size: 12px;
 }
 
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 16px 10px;
-  color: #bbb;
-  font-size: 12px;
-}
-
-.spinner {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border: 2px solid #e0e0e0;
-  border-radius: 50%;
-  border-top-color: #0099ff;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Ana Bölüm ve Harita */
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  position: relative;
-  min-width: 0;
-}
-#map {
-  flex: 1;
-  background: #ffffff;
-  min-width: 0;
-}
-
-/* Detay Paneli */
+/* Details Panel */
 .details-panel {
   background: #ffffff;
   border-left: 1px solid #e8e8e8;
@@ -265,19 +168,22 @@ select:focus {
   width: 420px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: -2px 0 8px rgba(0,0,0,0.06);
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.06);
   display: none;
   animation: slideIn 0.3s ease;
 }
+
 .details-panel.active {
   display: block;
 }
+
 .details-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 24px;
 }
+
 .details-header h2 {
   font-size: 26px;
   margin: 0;
@@ -286,6 +192,7 @@ select:focus {
   max-width: 85%;
   font-weight: 700;
 }
+
 .close-btn {
   background: none;
   border: none;
@@ -296,16 +203,20 @@ select:focus {
   transition: color 0.2s;
   flex-shrink: 0;
 }
+
 .close-btn:hover {
   color: #999;
 }
+
 .details-section {
   margin-bottom: 4px;
 }
+
 .details-section:not(:last-child) {
   padding-bottom: 5px;
   border-bottom: 1px solid #f0f0f0;
 }
+
 .details-section h3 {
   font-size: 11px;
   text-transform: uppercase;
@@ -314,17 +225,20 @@ select:focus {
   margin: 0 0 4px 0;
   font-weight: 700;
 }
+
 .details-description {
   font-size: 15px;
   line-height: 1.8;
   color: #555;
   margin: 0;
 }
+
 .details-meta {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
+
 .meta-tag {
   background: transparent;
   color: #0099ff;
@@ -338,7 +252,7 @@ select:focus {
   gap: 6px;
 }
 
-/* Galeri (Thumbnail) Placeholder */
+/* Gallery */
 .gallery-placeholder {
   background: linear-gradient(135deg, #f8f9ff 0%, #f0f5ff 100%);
   border: 1px solid #e3e8f0;
@@ -355,16 +269,18 @@ select:focus {
   cursor: pointer;
   transition: all 0.2s;
 }
+
 .gallery-placeholder:hover {
   background: linear-gradient(135deg, #f0f2ff 0%, #e8eeff 100%);
   border-color: #d0d8e8;
 }
+
 .gallery-placeholder-icon {
   font-size: 32px;
   opacity: 0.6;
 }
 
-/* Animasyonlar */
+/* Animations */
 @keyframes slideIn {
   from {
     transform: translateX(20px);
@@ -376,11 +292,18 @@ select:focus {
   }
 }
 
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
 
-
-
-
-/* Duyarlı Tasarım (Responsiveness) */
+/* Responsive */
 @media (max-width: 768px) {
   body {
     flex-direction: column;
@@ -393,14 +316,6 @@ select:focus {
   .main {
     width: 100%;
     height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  #map {
-    width: 100%;
-    flex: 1;
-    min-height: 0;
   }
   
   .details-panel {
@@ -416,11 +331,9 @@ select:focus {
     max-height: 100vh;
     z-index: 1000;
     border: none;
-    border-top: none;
     padding: 16px;
     display: block;
     overflow-y: auto;
-    background: #ffffff;
     animation: slideUp 0.3s ease;
   }
 }
@@ -437,29 +350,4 @@ select:focus {
   .gallery-placeholder {
     height: 180px;
   }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-
-/* Resim altındaki gereksiz boşluğu sıfırla */
-#galleryPlaceholder img {
-  margin-bottom: 0; 
-  display: block; /* Tarayıcıların resim satırı boşluğunu (line-height) sıfırlar */
-}
-
-/* Audio (ses çalar) elementinin altındaki marjini sıfırla */
-#audioPlayer {
-  margin-top: 0; /* Audio elementinin varsayılan üst boşluğunu sıfırla */
-  margin-bottom: 0; /* Audio elementinin altındaki boşluğu tamamen kaldır */
-  padding: 0;
 }
