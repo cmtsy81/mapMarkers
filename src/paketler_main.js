@@ -63,6 +63,17 @@ async function getAllFromIndexedDB(storeName) {
   });
 }
 
+async function saveMediaToIndexedDB(fileName, blob) {
+  if (!db) await initIndexedDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(['mediaCache'], 'readwrite');
+    const store = tx.objectStore('mediaCache');
+    const request = store.put(blob, fileName);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
 // ===== BILDIRIM FONKSİYONLARI =====
 function showNotification(message, type = 'info') {
   const toast = document.createElement('div');
