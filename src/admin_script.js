@@ -201,6 +201,11 @@ function applyFiltersAndRenderList() {
     renderLocationList(currentCityData);
     return;
   }
+    // ID'ye göre ters sıralama (son eklenen en üstte)
+  filteredData.sort((a, b) => {
+    // ID'leri karşılaştır (ters sırada)
+    return b.id.localeCompare(a.id);
+  });
 
   const filteredData = currentCityData.filter(loc => loc.categoryKey === selectedCategory);
   renderLocationList(filteredData);
