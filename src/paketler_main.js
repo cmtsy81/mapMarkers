@@ -48,7 +48,23 @@ async function saveMediaBlobToDB(storeName, key, blob) {
 }
 
 
+
+/**
+ * IndexedDB'den bir tablodaki TÜM kayıtları çeker.
+ */
+async function getAllFromIndexedDB(storeName) {
+  if (!db) await initIndexedDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([storeName], 'readonly');
+    const store = tx.objectStore(storeName);
+    const request = store.getAll(); // <-- Tüm kayıtları al
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
 // --- 3. PAKET YÖNETİCİSİ MANTIĞI ---
+
 
 // Sayfa yüklendiğinde bu fonksiyon çalışır
 async function loadPackages() {
@@ -56,16 +72,26 @@ async function loadPackages() {
   
   try {
     // 1. Adım: "Mutfak"tan (/packages/summary) paket listesini al
-    // (Bu, senin "Ev Ödevi"nde kurman gereken ilk API)
     const response = await fetch(`${API_BASE}/packages/summary`);
     if (!response.ok) throw new Error('Paket listesi çekilemedi');
-    
     const packages = await response.json();
     
+    // --- YENİ ADIM: "KİLER" (IndexedDB) KONTROLÜ ---
+    // 'markerDetails' (Ağır Veri) kasamızdaki tüm mevcut kayıtları çek
+    // (Dikkat: 'markerDetails' tablosunun 'map_script.js' tarafından oluşturulduğunu varsayıyoruz)
+    const downloadedDetails = await getAllFromIndexedDB('markerDetails');
+    
+    // Bu kayıtlardan, hangi şehirlerin bizde olduğunu gösteren bir Set (liste) oluştur
+    // (Aynı şehirden 100 kayıt bile olsa, Set sayesinde listede 1 kez yer alır)
+    const downloadedCities = new Set(downloadedDetails.map(item => item.data.city));
+    console.log('İndirilmiş (Cache\'lenmiş) Şehirler:', downloadedCities);
+    // --- YENİ ADIM BİTTİ ---
+
     container.innerHTML = ''; // Yükleniyor spinner'ını temizle
 
     // 2. Adım: Her paket için bir "kutu" oluştur
-    packages.forEach(renderPackageBox);
+    // (Artık 'downloadedCities' listesini de gönderiyoruz)
+    packages.forEach(pkg => renderPackageBox(pkg, downloadedCities));
 
   } catch (err) {
     console.error(err);
@@ -73,13 +99,24 @@ async function loadPackages() {
   }
 }
 
+
 // Her bir paket (şehir) için HTML kutusunu çizer
-function renderPackageBox(pkg) {
+function renderPackageBox(pkg, downloadedCities) { // <-- 1. YENİ ARGÜMANI (downloadedCities) AL
   const container = document.getElementById('paket-listesi');
   const box = document.createElement('div');
   box.className = 'paket-kutusu';
+  
+  // --- YENİ ADIM: "AKILLI" BUTON MANTIĞI ---
+  // Bu paket (şehir), 'downloadedCities' listesinde var mı?
+  const isDownloaded = downloadedCities.has(pkg.id);
+  
+  const indirBtnStyle = isDownloaded ? 'style="display:none;"' : '';
+  const silBtnStyle = isDownloaded ? '' : 'style="display:none;"';
+  // (Güncelleme mantığını şimdilik 'Sil' ile aynı tutuyoruz)
+  const guncelleBtnStyle = isDownloaded ? '' : 'style="display:none;"';
+  // --- YENİ ADIM BİTTİ ---
 
-  // Kutu içeriğini oluştur
+  // Kutu içeriğini oluştur (Yeni buton stilleriyle)
   box.innerHTML = `
     <h2>${pkg.name}</h2>
     <div class="paket-info">
@@ -88,9 +125,9 @@ function renderPackageBox(pkg) {
       <span>~${pkg.sizeMB} MB</span> disk alanı
     </div>
     <div class="paket-actions">
-      <button class="btn-indir" data-city-id="${pkg.id}">İndir</button>
-      <button class="btn-sil" data-city-id="${pkg.id}" style="display:none;">Sil</button>
-      <button class="btn-guncelle" data-city-id="${pkg.id}" style="display:none;">Güncelle</button>
+      <button class="btn-indir" data-city-id="${pkg.id}" ${indirBtnStyle}>İndir</button>
+      <button class="btn-sil" data-city-id="${pkg.id}" ${silBtnStyle}>Sil</button>
+      <button class="btn-guncelle" data-city-id="${pkg.id}" ${guncelleBtnStyle}>Güncelle</button>
     </div>
   `;
 
@@ -101,8 +138,7 @@ function renderPackageBox(pkg) {
 
   container.appendChild(box);
   
-  // (Buraya, o paketin IndexedDB'de zaten olup olmadığını kontrol edip
-  // "İndir" yerine "Sil" butonunu gösteren bir mantık eklememiz gerekecek)
+  // (O 'Buraya' yorum satırına artık gerek kalmadı, çünkü bu mantığı ekledik)
 }
 
 
