@@ -194,21 +194,9 @@ function renderLocationList(locationsToRender) {
 }
 
 // ===== APPLY FILTERS =====
+// ===== APPLY FILTERS =====
 function applyFiltersAndRenderList() {
-  const selectedCategory = categoryFilter.value;
-
-  if (!selectedCategory) {
-    renderLocationList(currentCityData);
-    return;
-  }
-    // ID'ye göre ters sıralama (son eklenen en üstte)
-  filteredData.sort((a, b) => {
-    // ID'leri karşılaştır (ters sırada)
-    return b.id.localeCompare(a.id);
-  });
-
-  const filteredData = currentCityData.filter(loc => loc.categoryKey === selectedCategory);
-  renderLocationList(filteredData);
+  sortAndFilterLocations(); // Artık bunu çağır
 }
 
 // ===== LOAD LOCATIONS =====
@@ -224,7 +212,7 @@ async function loadLocations(selectedCity) {
   if (cityCache.has(selectedCity)) {
     console.log(`"${selectedCity}" önbellekten yükleniyor...`);
     currentCityData = cityCache.get(selectedCity);
-    applyFiltersAndRenderList();
+    sortAndFilterLocations(); // ← BURAYA EKLE
     return;
   }
 
@@ -236,13 +224,33 @@ async function loadLocations(selectedCity) {
 
     cityCache.set(selectedCity, locs);
     currentCityData = locs;
-    applyFiltersAndRenderList();
+    sortAndFilterLocations(); // ← BURAYA EKLE
   } catch (err) {
     console.error("Lokasyonlar yüklenemedi:", err);
     showToast("Lokasyonlar yüklenemedi", "error");
     locationList.innerHTML = '<li style="text-align: center; padding: 20px; color: #999;">Hata oluştu</li>';
   }
 }
+
+// ===== SORT VE FILTER =====
+function sortAndFilterLocations() {
+  let filteredData = currentCityData;
+  
+  const selectedCategory = categoryFilter.value;
+  
+  // Kategori filtresi
+  if (selectedCategory) {
+    filteredData = currentCityData.filter(loc => loc.categoryKey === selectedCategory);
+  }
+  
+  // ID'ye göre ters sıralama (son eklenen en üstte)
+  filteredData.sort((a, b) => {
+    return b.id.localeCompare(a.id);
+  });
+  
+  renderLocationList(filteredData);
+}
+
 
 // ===== SWITCH TAB =====
 function switchTab(lang) {
