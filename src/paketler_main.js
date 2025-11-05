@@ -205,12 +205,8 @@ async function handleDownload(cityId, cityName) {
       for (const [fileName, type] of mediaFiles) {
         try {
           // Dosya yolunu oluştur (history-markers proxy üzerinden)
-          let mediaUrl;
-          if (type === 'image') {
-            mediaUrl = `https://history-markers.onrender.com/api/v1/media/images/${fileName}`;
-          } else if (type === 'audio') {
-            mediaUrl = `https://history-markers.onrender.com/api/v1/media/audio/${fileName}`;
-          }
+          // Proxy zaten type'ı dosya adından belirleyecek
+          const mediaUrl = `https://history-markers.onrender.com/api/v1/media/${fileName}`;
           
           console.log(`📥 İndiriliyor: ${mediaUrl}`);
           const mediaResponse = await fetch(mediaUrl);
