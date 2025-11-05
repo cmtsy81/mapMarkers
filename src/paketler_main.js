@@ -204,12 +204,12 @@ async function handleDownload(cityId, cityName) {
       
       for (const [fileName, type] of mediaFiles) {
         try {
-          // Dosya yolunu oluştur
+          // Dosya yolunu oluştur (history-markers proxy üzerinden)
           let mediaUrl;
           if (type === 'image') {
-            mediaUrl = `https://mapmarkers.onrender.com/assets/images/${fileName}`;
+            mediaUrl = `https://history-markers.onrender.com/api/v1/media/images/${fileName}`;
           } else if (type === 'audio') {
-            mediaUrl = `https://mapmarkers.onrender.com/assets/audio/${fileName}`;
+            mediaUrl = `https://history-markers.onrender.com/api/v1/media/audio/${fileName}`;
           }
           
           console.log(`📥 İndiriliyor: ${mediaUrl}`);
