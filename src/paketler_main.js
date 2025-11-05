@@ -180,24 +180,54 @@ async function handleDownload(cityId, cityName) {
       showProgressNotification(`${cityName} indiriliyor... (${progress}%)`);
     }
 
-    // 3. Medya dosyalarını indir ve BLOB olarak kaydet
-    if (packageData.media && packageData.media.length > 0) {
-      console.log(`📸 ${packageData.media.length} medya dosyası indiriliyor...`);
+    // 3. Medya dosyalarını indir (marker'lardan çıkart)
+    const mediaFiles = new Map();
+    
+    // Marker'lardan thumbnail ve audio dosya adlarını topla
+    for (const marker of packageData.details) {
+      if (marker.thumbnailUrl) {
+        mediaFiles.set(marker.thumbnailUrl, 'image');
+      }
       
-      for (const media of packageData.media) {
+      // Çevirilerdeki audio dosyaları
+      if (marker.translations) {
+        Object.values(marker.translations).forEach(trans => {
+          if (trans.audioPath) {
+            mediaFiles.set(trans.audioPath, 'audio');
+          }
+        });
+      }
+    }
+
+    if (mediaFiles.size > 0) {
+      console.log(`📸 ${mediaFiles.size} medya dosyası indiriliyor...`);
+      
+      for (const [fileName, type] of mediaFiles) {
         try {
-          const mediaResponse = await fetch(media.url);
+          // Dosya yolunu oluştur
+          let mediaUrl;
+          if (type === 'image') {
+            mediaUrl = `https://mapmarkers.onrender.com/assets/images/${fileName}`;
+          } else if (type === 'audio') {
+            mediaUrl = `https://mapmarkers.onrender.com/assets/audio/${fileName}`;
+          }
+          
+          console.log(`📥 İndiriliyor: ${mediaUrl}`);
+          const mediaResponse = await fetch(mediaUrl);
+          
           if (mediaResponse.ok) {
             const mediaBlob = await mediaResponse.blob();
             await saveToIndexedDB('mediaCache', {
-              id: media.fileName,
+              id: fileName,
               blob: mediaBlob,
               timestamp: Date.now()
             });
-            console.log(`✅ Medya kaydedildi: ${media.fileName}`);
+            console.log(`✅ Medya kaydedildi: ${fileName}`);
+          } else {
+            console.warn(`⚠️ Medya ${mediaResponse.status}: ${fileName}`);
           }
         } catch (mediaErr) {
-          console.warn(`⚠️ Medya indirme hatası: ${media.fileName}`, mediaErr);
+          console.warn(`⚠️ Medya indirme hatası: ${fileName}`, mediaErr);
         }
         processedItems++;
         const progress = Math.round((processedItems / totalItems) * 100);
@@ -208,10 +238,10 @@ async function handleDownload(cityId, cityName) {
     showProgressNotification(`${cityName} başarıyla indirildi!`);
     showNotification(`✅ ${cityName} cache'e kaydedildi!`, 'success');
 
-    // Sayfayı yenile
-    setTimeout(() => {
-      location.reload();
-    }, 1500);
+    // Test için sayfayı yenilemeyi devre dışı bıraktık
+    // setTimeout(() => {
+    //   location.reload();
+    // }, 1500);
 
   } catch (err) {
     console.error('İndirme hatası:', err);
@@ -273,10 +303,10 @@ async function handleDelete(cityId, cityName) {
     showNotification(`✅ ${cityName} cache'den silindi!`, 'success');
     hideProgressNotification();
 
-    // Sayfayı yenile
-    setTimeout(() => {
-      location.reload();
-    }, 1500);
+    // Test için sayfayı yenilemeyi devre dışı bıraktık
+    // setTimeout(() => {
+    //   location.reload();
+    // }, 1500);
 
   } catch (err) {
     console.error('Silme hatası:', err);
