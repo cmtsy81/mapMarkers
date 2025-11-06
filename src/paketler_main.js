@@ -52,16 +52,6 @@ async function deleteFromIndexedDB(storeName, key) {
   });
 }
 
-async function getAllFromIndexedDB(storeName) {
-  if (!db) await initIndexedDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction([storeName], 'readonly');
-    const store = tx.objectStore(storeName);
-    const request = store.getAll();
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
 
 async function saveMediaToIndexedDB(fileName, blob) {
   if (!db) await initIndexedDB();
