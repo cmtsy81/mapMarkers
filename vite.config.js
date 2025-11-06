@@ -35,9 +35,11 @@ export default defineConfig({
         // ← BURAYA EKLE
         globPatterns: [
           '**/*.{js,css,html}',
-              '*.png',
-              '*.jpg'
-        ],
+          'pin_*.png',      // public/pin_*.png
+          'assets/**/*.png',
+          'assets/**/*.jpg',
+          'fallbacks/**/*.jpg'
+        ]
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/mapmarkers\.onrender\.com\//,
