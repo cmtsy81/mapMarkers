@@ -25,16 +25,17 @@ export default defineConfig({
         short_name: 'Haritam',
         description: 'Gezdiğim yerlerin haritası',
         theme_color: '#ffffff',
-        icons: [
-          {
-            src: 'pin_default.png', 
-            sizes: '192x192',
-            type: 'image/png'
-          }
-        ]
+        icons: [{
+          src: 'pin_default.png', 
+          sizes: '192x192',
+          type: 'image/png'
+        }]
       },
-      // ← BURAYA EKLE
       workbox: {
+        // ← BURAYA EKLE
+        globPatterns: [
+          '**/*.{js,css,html}'
+        ],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/mapmarkers\.onrender\.com\//,
