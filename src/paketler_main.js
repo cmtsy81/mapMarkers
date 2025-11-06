@@ -59,8 +59,21 @@ async function saveMediaToIndexedDB(fileName, blob) {
     const tx = db.transaction(['mediaCache'], 'readwrite');
     const store = tx.objectStore('mediaCache');
     const request = store.put(blob, fileName);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+    
+    request.onsuccess = () => {
+      console.log(`✅ BLOB kaydedildi (transaction başarılı): ${fileName}`);
+      resolve();
+    };
+    
+    request.onerror = () => {
+      console.error(`❌ BLOB kaydetme hatası: ${fileName}`, request.error);
+      reject(request.error);
+    };
+    
+    tx.onerror = () => {
+      console.error(`❌ Transaction hatası: ${fileName}`, tx.error);
+      reject(tx.error);
+    };
   });
 }
 
