@@ -34,7 +34,9 @@ export default defineConfig({
       workbox: {
         // ← BURAYA EKLE
         globPatterns: [
-          '**/*.{js,css,html}'
+          '**/*.{js,css,html}',
+              '*.png',
+              '*.jpg'
         ],
         runtimeCaching: [
           {
